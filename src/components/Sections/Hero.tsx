@@ -1,0 +1,255 @@
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { Download, Loader, Github, Linkedin, Twitter, Mail, Facebook, Instagram, Youtube, MessageCircle } from 'lucide-react';
+import { TypeAnimation } from 'react-type-animation';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../config/firebase';
+import { HomeFormData } from '../../types/types';
+
+const Hero = () => {
+  const [homeData, setHomeData] = useState<HomeFormData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchHomeData();
+  }, []);
+
+  const fetchHomeData = async () => {
+    try {
+      const docRef = doc(db, 'home', 'main');
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        const data = docSnap.data() as any;
+        
+        // Migrate old social links format to new format
+        if (data.socialLinks && Array.isArray(data.socialLinks)) {
+          data.socialLinks = data.socialLinks.map((link: any) => {
+            if (!link.iconType) {
+              if (link.iconUrl) {
+                return { ...link, iconType: 'custom' };
+              } else if (link.icon && typeof link.icon === 'string') {
+                return {
+                  name: link.name,
+                  iconType: 'builtin',
+                  icon: link.icon,
+                  url: link.url,
+                };
+              }
+            }
+            return link;
+          });
+        }
+        
+        setHomeData(data as HomeFormData);
+      }
+    } catch (error) {
+      console.error('Error fetching home data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getBuiltinIcon = (iconName: string) => {
+    const normalizedName = iconName.trim();
+    
+    const iconMap: { [key: string]: any } = {
+      Github: Github,
+      GitHub: Github,
+      Linkedin: Linkedin,
+      LinkedIn: Linkedin,
+      Twitter: Twitter,
+      X: Twitter,
+      Mail: Mail,
+      Email: Mail,
+      Facebook: Facebook,
+      Instagram: Instagram,
+      Youtube: Youtube,
+      YouTube: Youtube,
+      Discord: MessageCircle,
+      Whatsapp: MessageCircle,
+      Telegram: MessageCircle,
+      Leetcode: MessageCircle,
+      Medium: MessageCircle,
+      Dev: MessageCircle,
+      Stackoverflow: MessageCircle,
+    };
+    
+    const IconComponent = iconMap[normalizedName] || MessageCircle;
+    return <IconComponent className="w-6 h-6" />;
+  };
+
+  // Create typing animation sequence from roles
+  const getTypingSequence = () => {
+    if (!homeData || !homeData.roles || homeData.roles.length === 0) {
+      return ['Developer', 2000];
+    }
+    
+    const sequence: (string | number)[] = [];
+    homeData.roles.forEach((role) => {
+      sequence.push(role, 2000); // Show each role for 2 seconds
+    });
+    return sequence;
+  };
+
+  if (loading) {
+    return (
+      <section id="home" className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
+        <Loader className="w-12 h-12 animate-spin text-blue-600 dark:text-blue-400" />
+      </section>
+    );
+  }
+
+  if (!homeData) return null;
+
+  return (
+    <section id="home" className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 px-4 py-20">
+      <div className="max-w-7xl mx-auto w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          {/* Left Content */}
+          <motion.div
+            initial={{ opacity: 0, x: -50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-center lg:text-left"
+          >
+            <motion.h1 
+              className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1, duration: 0.5 }}
+            >
+              Hi, I'm <span className="text-blue-600 dark:text-blue-400">{homeData.displayName}</span>
+            </motion.h1>
+            
+            {/* Typing Animation for Roles */}
+            <div className="text-2xl sm:text-3xl md:text-4xl font-semibold text-gray-700 dark:text-gray-300 mb-6 min-h-[3rem] flex items-center justify-center lg:justify-start">
+              <TypeAnimation
+                sequence={getTypingSequence()}
+                wrapper="span"
+                speed={50}
+                repeat={Infinity}
+                cursor={true}
+                className="text-blue-600 dark:text-blue-400"
+              />
+            </div>
+
+            {/* Description */}
+            {homeData.description && (
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.5 }}
+                className="text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto lg:mx-0"
+              >
+                {homeData.description}
+              </motion.p>
+            )}
+            
+            {/* Social Links */}
+            <div className="flex justify-center lg:justify-start flex-wrap gap-4 mb-8">
+              {homeData.socialLinks && homeData.socialLinks.length > 0 ? (
+                homeData.socialLinks.map((link, index) => {
+                  const iconType = link.iconType || 'builtin';
+                  const icon = link.icon || '';
+                  let iconUrl = (link.iconUrl || '').trim();
+                  if (iconUrl.startsWith('(')) iconUrl = iconUrl.substring(1);
+                  if (iconUrl.endsWith(')')) iconUrl = iconUrl.substring(0, iconUrl.length - 1);
+                  
+                  return (
+                    <motion.a
+                      key={index}
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-3 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900 transition-all duration-300 flex items-center justify-center"
+                      whileHover={{ scale: 1.1, y: -5 }}
+                      whileTap={{ scale: 0.9 }}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, delay: 0.4 + index * 0.05 }}
+                      title={link.name}
+                    >
+                      {iconType === 'builtin' && icon ? (
+                        getBuiltinIcon(icon)
+                      ) : iconUrl ? (
+                        <img 
+                          src={iconUrl} 
+                          alt={link.name}
+                          className="w-6 h-6 object-contain"
+                        />
+                      ) : (
+                        <MessageCircle className="w-6 h-6" />
+                      )}
+                    </motion.a>
+                  );
+                })
+              ) : null}
+            </div>
+
+            {/* Resume Button */}
+            {homeData.resumeLink && (
+              <motion.a
+                href={homeData.resumeLink}
+                download="Resume.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center space-x-2 px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg shadow-lg hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-300"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.98 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6, duration: 0.5 }}
+              >
+                <Download className="w-5 h-5" />
+                <span>Download Resume</span>
+              </motion.a>
+            )}
+
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.8, duration: 0.5 }}
+              className="mt-6 text-sm text-gray-500 dark:text-gray-400"
+            >
+              💡 Best viewed on desktop for optimal experience
+            </motion.div>
+          </motion.div>
+
+          {/* Right Content - Profile Picture with Hover Effect */}
+          <motion.div
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5 }}
+            className="flex justify-center lg:justify-end"
+          >
+            {homeData.profilePicture ? (
+              <motion.div 
+                className="relative group cursor-pointer"
+                whileHover={{ scale: 1.05 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-purple-600 rounded-full blur-2xl opacity-30 group-hover:opacity-50 transition-opacity duration-300 animate-pulse" />
+                <img
+                  src={homeData.profilePicture}
+                  alt={homeData.displayName}
+                  className="relative w-64 h-64 sm:w-80 sm:h-80 lg:w-96 lg:h-96 rounded-full object-cover border-8 border-white dark:border-gray-800 shadow-2xl"
+                  loading="eager"
+                />
+              </motion.div>
+            ) : (
+              <div className="relative w-64 h-64 sm:w-80 sm:h-80 lg:w-96 lg:h-96 rounded-full overflow-hidden shadow-2xl bg-white/60 dark:bg-gray-900/60 backdrop-blur-md border-8 border-white dark:border-gray-800">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 to-purple-600/20 dark:from-blue-600/20 dark:to-purple-800/20" />
+                <div className="relative h-full flex items-center justify-center">
+                  <div className="text-8xl">👨‍💻</div>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+export default Hero;
