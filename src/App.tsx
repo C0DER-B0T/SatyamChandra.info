@@ -15,6 +15,7 @@ import Navbar from './components/Navbar';
 import ThemeToggle from './components/ThemeToggle';
 import { ThemeProvider } from './context/ThemeContext';
 import CustomCursor from './components/CustomCursor';
+import ParticlesBackground from './components/ParticlesBackground';
 import Login from './pages/admin/Login';
 import Dashboard from './pages/admin/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -142,6 +143,7 @@ const App = () => {
   return (
     <ThemeProvider>
       <Router>
+        <ParticlesBackground />
         <CustomCursor />
         <Routes>
           {/* Public Portfolio Route */}
