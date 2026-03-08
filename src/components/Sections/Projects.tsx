@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Github, ExternalLink, Loader, Calendar } from 'lucide-react';
+import { ExternalLink, Loader, Calendar } from 'lucide-react';
+import { FaGithub as Github } from 'react-icons/fa';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { Project } from '../../types/types';
@@ -21,8 +22,8 @@ const Projects = () => {
         ...doc.data(),
       })) as Project[];
       
-      // Sort by hierarchy: Advanced > Medium > Basic, then by date (newest first)
-      const levelOrder = { 'Advanced': 3, 'Medium': 2, 'Basic': 1 };
+      // Sort by hierarchy: Superior > Advanced > Medium > Basic > Minor, then by date (newest first)
+      const levelOrder: Record<string, number> = { 'Superior': 5, 'Advanced': 4, 'Medium': 3, 'Basic': 2, 'Minor': 1 };
       const sorted = projectsData.sort((a, b) => {
         // Primary sort: by level
         const levelDiff = (levelOrder[b.level] || 0) - (levelOrder[a.level] || 0);
@@ -45,12 +46,16 @@ const Projects = () => {
 
   const getLevelColor = (level: string) => {
     switch (level) {
+      case 'Superior':
+        return 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg shadow-orange-500/30';
       case 'Advanced':
         return 'bg-gradient-to-r from-purple-600 to-pink-600 text-white';
       case 'Medium':
         return 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white';
       case 'Basic':
         return 'bg-gradient-to-r from-green-600 to-emerald-600 text-white';
+      case 'Minor':
+        return 'bg-gray-500 dark:bg-gray-600 text-white border border-gray-400 dark:border-gray-500';
       default:
         return 'bg-gray-600 text-white';
     }
@@ -100,11 +105,18 @@ const Projects = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.05 }}
                 viewport={{ once: true }}
-                className={`bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 ${
-                  project.level === 'Advanced' ? 'ring-2 ring-purple-500' : ''
+                className={`bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 relative ${
+                  project.level === 'Superior' ? 'ring-2 ring-yellow-500 shadow-[0_0_20px_rgba(234,179,8,0.3)] hover:shadow-[0_0_40px_rgba(234,179,8,0.6)] hover:-translate-y-2 z-10' : 
+                  project.level === 'Advanced' ? 'ring-2 ring-purple-500/80 hover:ring-purple-500 transition-all' : 
+                  project.level === 'Medium' ? 'ring-1 ring-blue-500/50 hover:ring-blue-500/80 transition-all' : 
+                  project.level === 'Basic' ? 'border border-green-500/30 hover:border-green-500/60 transition-all' : 
+                  project.level === 'Minor' ? 'opacity-90 grayscale-[20%]' : ''
                 }`}
               >
-                <div className="relative h-48">
+                {project.level === 'Superior' && (
+                  <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/5 to-orange-500/5 pointer-events-none z-10" />
+                )}
+                <div className="relative h-48 z-20">
                   {project.coverPhoto ? (
                     <img
                       src={project.coverPhoto}

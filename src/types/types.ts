@@ -82,7 +82,7 @@ export interface SkillCategoryFormData {
   skills: Skill[];
 }
 
-// Fixed skill categories
+// Fixed skill categories (Legacy - kept for typing but no longer enforced UI limits)
 export const SKILL_CATEGORIES = [
   'Programming Languages',
   'Machine Learning',
@@ -160,7 +160,7 @@ export interface Project {
   githubLink: string;
   liveDemoLink: string;
   date: string; // Format: "YYYY-MM" or "Month YYYY"
-  level: 'Basic' | 'Medium' | 'Advanced';
+  level: 'Minor' | 'Basic' | 'Medium' | 'Advanced' | 'Superior';
   order: number;
   createdAt: Date;
   updatedAt: Date;
@@ -175,7 +175,7 @@ export interface ProjectFormData {
   githubLink: string;
   liveDemoLink: string;
   date: string;
-  level: 'Basic' | 'Medium' | 'Advanced';
+  level: 'Minor' | 'Basic' | 'Medium' | 'Advanced' | 'Superior';
 }
 
 // ============================================
@@ -284,4 +284,27 @@ export interface AboutFeature {
   icon: string;
   title: string;
   description: string;
+}
+
+// ============================================
+// ACHIEVEMENTS SECTION
+// ============================================
+export interface Achievement {
+  id: string;
+  title: string;
+  platform: string;       // e.g., "GitHub", "Google Cloud"
+  description: string;
+  badgeImage: string;     // URL of the PNG badge
+  link?: string;          // Optional verification/profile link
+  order: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface AchievementFormData {
+  title: string;
+  platform: string;
+  description: string;
+  badgeImage: string;
+  link: string;
 }

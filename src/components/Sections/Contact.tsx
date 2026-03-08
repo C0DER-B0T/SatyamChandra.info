@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Mail, Phone, Github, Linkedin, Twitter, Send, Loader, MessageCircle, X } from 'lucide-react';
+import { MapPin, Mail, Phone, Linkedin, Twitter, Send, Loader, MessageCircle, X } from 'lucide-react';
+import { FaGithub as Github } from 'react-icons/fa';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { ContactFormData } from '../../types/types';

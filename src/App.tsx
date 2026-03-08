@@ -9,6 +9,7 @@ import Work from './components/Sections/Work';
 import Skills from './components/Sections/Skills';
 import Projects from './components/Sections/Projects';
 import Certifications from './components/Sections/Certifications';
+import Achievements from './components/Sections/Achievements';
 import Contact from './components/Sections/Contact';
 import Navbar from './components/Navbar';
 import ThemeToggle from './components/ThemeToggle';
@@ -26,6 +27,7 @@ const sectionIds = [
   'skills',
   'projects',
   'certifications',
+  'achievements',
   'contact',
 ];
 
@@ -126,6 +128,7 @@ const PortfolioHome = () => {
             {activeTab === 'skills' && <Skills />}
             {activeTab === 'projects' && <Projects />}
             {activeTab === 'certifications' && <Certifications />}
+            {activeTab === 'achievements' && <Achievements />}
             {activeTab === 'contact' && <Contact />}
           </motion.div>
         </AnimatePresence>

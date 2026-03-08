@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Home, User, GraduationCap, Briefcase, Code2, FolderOpen, Award, Mail } from 'lucide-react';
+import { Home, User, GraduationCap, Briefcase, Code2, FolderOpen, Award, Mail, Trophy } from 'lucide-react';
 
 interface NavbarProps {
   activeTab: string;
@@ -16,6 +16,7 @@ const Navbar = ({ activeTab, onTabChange, scrollTab }: NavbarProps) => {
     { id: 'skills', label: 'Skills', icon: <Code2 className="w-5 h-5" /> },
     { id: 'projects', label: 'Projects', icon: <FolderOpen className="w-5 h-5" /> },
     { id: 'certifications', label: 'Certifications', icon: <Award className="w-5 h-5" /> },
+    { id: 'achievements', label: 'Achievements', icon: <Trophy className="w-5 h-5" /> },
     { id: 'contact', label: 'Contact', icon: <Mail className="w-5 h-5" /> }
   ];
 

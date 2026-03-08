@@ -21,8 +21,9 @@ const BUILTIN_ICONS = [
   { value: 'Telegram', label: 'Telegram' },
   { value: 'Leetcode', label: 'LeetCode' },
   { value: 'Medium', label: 'Medium' },
-  { value: 'Dev', label: 'Dev.to' },
   { value: 'Stackoverflow', label: 'Stack Overflow' },
+  { value: 'GeeksforGeeks', label: 'GeeksforGeeks' },
+  { value: 'HackerRank', label: 'HackerRank' },
 ] as const;
 
 const HomeManager = () => {

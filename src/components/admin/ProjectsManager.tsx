@@ -277,12 +277,14 @@ const ProjectsManager = () => {
                     </label>
                     <select
                       value={formData.level}
-                      onChange={(e) => setFormData({ ...formData, level: e.target.value as 'Basic' | 'Medium' | 'Advanced' })}
+                      onChange={(e) => setFormData({ ...formData, level: e.target.value as 'Minor' | 'Basic' | 'Medium' | 'Advanced' | 'Superior' })}
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     >
-                      <option value="Basic">Basic</option>
-                      <option value="Medium">Medium</option>
+                      <option value="Superior">Superior</option>
                       <option value="Advanced">Advanced</option>
+                      <option value="Medium">Medium</option>
+                      <option value="Basic">Basic</option>
+                      <option value="Minor">Minor</option>
                     </select>
                   </div>
                 </div>

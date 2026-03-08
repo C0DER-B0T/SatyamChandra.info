@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Download, Loader, Github, Linkedin, Twitter, Mail, Facebook, Instagram, Youtube, MessageCircle } from 'lucide-react';
+import { Download, Loader, Linkedin, Twitter, Mail, Facebook, Instagram, Youtube, MessageCircle } from 'lucide-react';
+import { FaGithub } from 'react-icons/fa';
+import { SiGeeksforgeeks, SiHackerrank } from 'react-icons/si';
 import { TypeAnimation } from 'react-type-animation';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
@@ -54,8 +56,8 @@ const Hero = () => {
     const normalizedName = iconName.trim();
     
     const iconMap: { [key: string]: any } = {
-      Github: Github,
-      GitHub: Github,
+      Github: FaGithub,
+      GitHub: FaGithub,
       Linkedin: Linkedin,
       LinkedIn: Linkedin,
       Twitter: Twitter,
@@ -73,6 +75,10 @@ const Hero = () => {
       Medium: MessageCircle,
       Dev: MessageCircle,
       Stackoverflow: MessageCircle,
+      GeeksforGeeks: SiGeeksforgeeks,
+      GeeksForGeeks: SiGeeksforgeeks,
+      HackerRank: SiHackerrank,
+      Hackerrank: SiHackerrank,
     };
     
     const IconComponent = iconMap[normalizedName] || MessageCircle;

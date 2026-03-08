@@ -3,17 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../config/firebase';
 import { motion } from 'framer-motion';
-import { Home, User, GraduationCap, Briefcase, FolderOpen, Award, Code2, LogOut, Mail } from 'lucide-react';
+import { Home, User, GraduationCap, Briefcase, FolderOpen, Award, Code2, LogOut, Mail, Trophy } from 'lucide-react';
 import HomeManager from '../../components/admin/HomeManager';
 import AboutManager from '../../components/admin/AboutManager';
 import EducationManager from '../../components/admin/EducationManager';
 import ExperienceManager from '../../components/admin/ExperienceManager';
 import ProjectsManager from '../../components/admin/ProjectsManager';
 import CertificatesManager from '../../components/admin/CertificatesManager';
+import AchievementsManager from '../../components/admin/AchievementsManager';
 import SkillsManager from '../../components/admin/SkillsManager';
 import ContactManager from '../../components/admin/ContactManager';
 
-type TabType = 'home' | 'about' | 'skills' | 'education' | 'experience' | 'projects' | 'certificates' | 'contact';
+type TabType = 'home' | 'about' | 'skills' | 'education' | 'experience' | 'projects' | 'certificates' | 'achievements' | 'contact';
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState<TabType>('home');
@@ -36,6 +37,7 @@ const Dashboard = () => {
     { id: 'experience' as TabType, name: 'Experience', icon: Briefcase },
     { id: 'projects' as TabType, name: 'Projects', icon: FolderOpen },
     { id: 'certificates' as TabType, name: 'Certificates', icon: Award },
+    { id: 'achievements' as TabType, name: 'Achievements', icon: Trophy },
     { id: 'contact' as TabType, name: 'Contact', icon: Mail },
   ];
 
@@ -122,6 +124,7 @@ const Dashboard = () => {
             {activeTab === 'experience' && <ExperienceManager />}
             {activeTab === 'projects' && <ProjectsManager />}
             {activeTab === 'certificates' && <CertificatesManager />}
+            {activeTab === 'achievements' && <AchievementsManager />}
             {activeTab === 'contact' && <ContactManager />}
           </motion.div>
         </div>
