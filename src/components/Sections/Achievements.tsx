@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { collection, getDocs } from 'firebase/firestore';
+import Tilt from 'react-parallax-tilt';
 import { db } from '../../config/firebase';
 import { Achievement } from '../../types/types';
 import { Loader, ExternalLink } from 'lucide-react';
@@ -67,8 +68,20 @@ const Achievements = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 flex flex-col items-center justify-between text-center hover:shadow-xl transition-shadow"
+                className="h-full"
               >
+                <Tilt
+                  tiltMaxAngleX={15}
+                  tiltMaxAngleY={15}
+                  glareEnable={true}
+                  glareMaxOpacity={0.2}
+                  glareColor="#ffffff"
+                  glarePosition="all"
+                  glareBorderRadius="12px"
+                  scale={1.05}
+                  transitionSpeed={2000}
+                  className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 flex flex-col items-center justify-between text-center hover:shadow-xl transition-shadow h-full"
+                >
                 <div className="w-full flex-1 flex flex-col items-center justify-center mb-4">
                   {/* Image container using object-contain to keep PNG shape */}
                   <div className="h-40 w-full relative mb-6">
@@ -100,6 +113,7 @@ const Achievements = () => {
                     <ExternalLink className="w-4 h-4" />
                   </a>
                 )}
+                </Tilt>
               </motion.div>
             ))}
           </div>

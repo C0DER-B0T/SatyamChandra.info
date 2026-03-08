@@ -14,6 +14,7 @@ import Contact from './components/Sections/Contact';
 import Navbar from './components/Navbar';
 import ThemeToggle from './components/ThemeToggle';
 import { ThemeProvider } from './context/ThemeContext';
+import CustomCursor from './components/CustomCursor';
 import Login from './pages/admin/Login';
 import Dashboard from './pages/admin/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -141,6 +142,7 @@ const App = () => {
   return (
     <ThemeProvider>
       <Router>
+        <CustomCursor />
         <Routes>
           {/* Public Portfolio Route */}
           <Route path="/" element={<PortfolioHome />} />

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { ExternalLink, Loader, Calendar } from 'lucide-react';
 import { FaGithub as Github } from 'react-icons/fa';
 import { collection, getDocs } from 'firebase/firestore';
+import Tilt from 'react-parallax-tilt';
 import { db } from '../../config/firebase';
 import { Project } from '../../types/types';
 
@@ -105,14 +106,26 @@ const Projects = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.05 }}
                 viewport={{ once: true }}
-                className={`bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 relative ${
-                  project.level === 'Superior' ? 'ring-2 ring-yellow-500 shadow-[0_0_20px_rgba(234,179,8,0.3)] hover:shadow-[0_0_40px_rgba(234,179,8,0.6)] hover:-translate-y-2 z-10' : 
-                  project.level === 'Advanced' ? 'ring-2 ring-purple-500/80 hover:ring-purple-500 transition-all' : 
-                  project.level === 'Medium' ? 'ring-1 ring-blue-500/50 hover:ring-blue-500/80 transition-all' : 
-                  project.level === 'Basic' ? 'border border-green-500/30 hover:border-green-500/60 transition-all' : 
-                  project.level === 'Minor' ? 'opacity-90 grayscale-[20%]' : ''
-                }`}
+                className="h-full"
               >
+                <Tilt
+                  tiltMaxAngleX={10}
+                  tiltMaxAngleY={10}
+                  glareEnable={true}
+                  glareMaxOpacity={0.3}
+                  glareColor="#ffffff"
+                  glarePosition="all"
+                  glareBorderRadius="12px"
+                  scale={1.02}
+                  transitionSpeed={2500}
+                  className={`h-full bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 relative ${
+                    project.level === 'Superior' ? 'ring-2 ring-yellow-500 shadow-[0_0_20px_rgba(234,179,8,0.3)] hover:shadow-[0_0_40px_rgba(234,179,8,0.6)] hover:-translate-y-2 z-10' : 
+                    project.level === 'Advanced' ? 'ring-2 ring-purple-500/80 hover:ring-purple-500 transition-all' : 
+                    project.level === 'Medium' ? 'ring-1 ring-blue-500/50 hover:ring-blue-500/80 transition-all' : 
+                    project.level === 'Basic' ? 'border border-green-500/30 hover:border-green-500/60 transition-all' : 
+                    project.level === 'Minor' ? 'opacity-90 grayscale-[20%]' : ''
+                  }`}
+                >
                 {project.level === 'Superior' && (
                   <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/5 to-orange-500/5 pointer-events-none z-10" />
                 )}
@@ -200,6 +213,7 @@ const Projects = () => {
                     )}
                   </div>
                 </div>
+                </Tilt>
               </motion.div>
             ))}
           </div>

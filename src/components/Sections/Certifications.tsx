@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Award, ExternalLink, Loader } from 'lucide-react';
+import Tilt from 'react-parallax-tilt';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { Certificate } from '../../types/types';
@@ -65,9 +66,20 @@ const Certifications = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
                 viewport={{ once: true }}
-                whileHover={{ y: -5 }}
-                className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden"
+                className="h-full"
               >
+                <Tilt
+                  tiltMaxAngleX={8}
+                  tiltMaxAngleY={8}
+                  glareEnable={true}
+                  glareMaxOpacity={0.3}
+                  glareColor="#ffffff"
+                  glarePosition="all"
+                  glareBorderRadius="12px"
+                  scale={1.02}
+                  transitionSpeed={3000}
+                  className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden h-full"
+                >
                 {cert.certificateImage && (
                   <div className="relative h-48">
                     <img
@@ -132,6 +144,7 @@ const Certifications = () => {
                     </motion.a>
                   )}
                 </div>
+                </Tilt>
               </motion.div>
             ))}
           </div>
