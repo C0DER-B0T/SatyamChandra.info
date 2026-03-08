@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import { Download, Loader, Linkedin, Twitter, Mail, Facebook, Instagram, Youtube, MessageCircle } from 'lucide-react';
 import { FaGithub } from 'react-icons/fa';
 import { SiGeeksforgeeks, SiHackerrank } from 'react-icons/si';
-import Tilt from 'react-parallax-tilt';
 import { TypeAnimation } from 'react-type-animation';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
@@ -231,34 +230,19 @@ const Hero = () => {
             className="flex justify-center lg:justify-end"
           >
             {homeData.profilePicture ? (
-              <Tilt
-                tiltMaxAngleX={15}
-                tiltMaxAngleY={15}
-                perspective={1000}
-                transitionSpeed={2000}
-                scale={1.05}
-                className="transform-style-3d cursor-pointer"
+              <motion.div 
+                className="relative group cursor-pointer"
+                whileHover={{ scale: 1.05 }}
+                transition={{ duration: 0.3 }}
               >
-                <div
-                  className="relative group"
-                  style={{ transformStyle: 'preserve-3d' }}
-                >
-                  {/* Glowing Backdrop (Pushed back slightly) */}
-                  <div 
-                    className="absolute inset-x-0 bottom-0 top-0 bg-gradient-to-br from-blue-400 to-purple-600 rounded-full blur-2xl opacity-40 group-hover:opacity-70 transition-opacity duration-500 animate-pulse" 
-                    style={{ transform: 'translateZ(-30px)' }}
-                  />
-                  
-                  {/* The actual image (Popped forward to create a 3D hologram effect) */}
-                  <img
-                    src={homeData.profilePicture}
-                    alt={homeData.displayName}
-                    className="relative w-64 h-64 sm:w-80 sm:h-80 lg:w-96 lg:h-96 rounded-full object-cover border-8 border-white/20 dark:border-gray-800/50 shadow-2xl backdrop-blur-sm"
-                    style={{ transform: 'translateZ(60px)' }}
-                    loading="eager"
-                  />
-                </div>
-              </Tilt>
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-purple-600 rounded-full blur-2xl opacity-30 group-hover:opacity-50 transition-opacity duration-300 animate-pulse" />
+                <img
+                  src={homeData.profilePicture}
+                  alt={homeData.displayName}
+                  className="relative w-64 h-64 sm:w-80 sm:h-80 lg:w-96 lg:h-96 rounded-full object-cover border-8 border-white dark:border-gray-800 shadow-2xl"
+                  loading="eager"
+                />
+              </motion.div>
             ) : (
               <div className="relative w-64 h-64 sm:w-80 sm:h-80 lg:w-96 lg:h-96 rounded-full overflow-hidden shadow-2xl bg-white/60 dark:bg-gray-900/60 backdrop-blur-md border-8 border-white dark:border-gray-800">
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 to-purple-600/20 dark:from-blue-600/20 dark:to-purple-800/20" />
