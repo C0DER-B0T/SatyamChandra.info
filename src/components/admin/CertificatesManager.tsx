@@ -1,7 +1,7 @@
 import { useState, useEffect, ChangeEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Edit2, Trash2, Save, X, Upload, Loader } from 'lucide-react';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { Plus, Edit2, Trash2, Save, X, Upload, Loader, ChevronUp, ChevronDown } from 'lucide-react';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, writeBatch } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { uploadToCloudinary } from '../../config/cloudinary';
 import { Certificate, CertificateFormData } from '../../types/types';
@@ -21,6 +21,8 @@ const CertificatesManager = () => {
     skillsLearned: [],
     verificationLink: '',
     certificateImage: '',
+    date: '',
+    level: 'Medium',
   });
 
   useEffect(() => {
@@ -34,7 +36,26 @@ const CertificatesManager = () => {
         id: doc.id,
         ...doc.data(),
       })) as Certificate[];
-      setCertificates(certsData.sort((a, b) => (b.order || 0) - (a.order || 0)));
+      const levelOrder: Record<string, number> = { 'Superior': 5, 'Advanced': 4, 'Medium': 3, 'Basic': 2, 'Minor': 1 };
+      const sorted = certsData.sort((a, b) => {
+        // Sort by level first
+        const levelDiff = (levelOrder[b.level] || 0) - (levelOrder[a.level] || 0);
+        if (levelDiff !== 0) return levelDiff;
+        
+        // Then by order within that level
+        const aOrder = a.order !== undefined ? a.order : -1;
+        const bOrder = b.order !== undefined ? b.order : -1;
+        if (bOrder !== aOrder) {
+          return bOrder - aOrder;
+        }
+
+        // Tertiary fallback to date
+        if (a.date && b.date) {
+          return b.date.localeCompare(a.date);
+        }
+        return 0;
+      });
+      setCertificates(sorted);
     } catch (error) {
       console.error('Error fetching certificates:', error);
     } finally {
@@ -94,6 +115,8 @@ const CertificatesManager = () => {
       skillsLearned: cert.skillsLearned,
       verificationLink: cert.verificationLink,
       certificateImage: cert.certificateImage,
+      date: cert.date || '',
+      level: cert.level || 'Medium',
     });
     setEditingId(cert.id);
     setShowForm(true);
@@ -119,9 +142,61 @@ const CertificatesManager = () => {
       skillsLearned: [],
       verificationLink: '',
       certificateImage: '',
+      date: '',
+      level: 'Medium',
     });
     setEditingId(null);
     setShowForm(false);
+  };
+
+  const handleMove = async (index: number, direction: 'up' | 'down') => {
+    if (
+      (direction === 'up' && index === 0) ||
+      (direction === 'down' && index === certificates.length - 1)
+    ) return;
+
+    const swapIndex = direction === 'up' ? index - 1 : index + 1;
+    
+    // Validate we are swapping within the exact same level
+    if (certificates[index].level !== certificates[swapIndex].level) {
+      return; 
+    }
+
+    const newCerts = [...certificates];
+
+    // Swap strictly visually for optimistic UI update
+    const temp = newCerts[index];
+    newCerts[index] = newCerts[swapIndex];
+    newCerts[swapIndex] = temp;
+    
+    // We only need to fix the explicit order of the two swapped nodes.
+    const currentLevel = certificates[index].level;
+    
+    // Filter out only certificates of the current level to rebuild their specific orders
+    const levelCerts = newCerts.filter(p => p.level === currentLevel);
+    
+    // Assign new descending orders for just this level's items
+    levelCerts.forEach((p, i) => {
+      p.order = levelCerts.length - 1 - i;
+    });
+
+    setCertificates([...newCerts]);
+
+    try {
+      const batch = writeBatch(db);
+      
+      const item1Ref = doc(db, 'certificates', newCerts[index].id);
+      batch.update(item1Ref, { order: newCerts[index].order });
+
+      const item2Ref = doc(db, 'certificates', newCerts[swapIndex].id);
+      batch.update(item2Ref, { order: newCerts[swapIndex].order });
+
+      await batch.commit();
+    } catch (error) {
+      console.error('Error reordering certificates:', error);
+      alert('Failed to save new order');
+      fetchCertificates(); // Revert on failure
+    }
   };
 
   if (loading) {
@@ -212,6 +287,38 @@ const CertificatesManager = () => {
                   />
                 </div>
 
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Date Achieved
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.date}
+                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                      placeholder="e.g. Oct 2023"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Level (Sorting Category)
+                    </label>
+                    <select
+                      value={formData.level}
+                      onChange={(e: any) => setFormData({ ...formData, level: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    >
+                      <option value="Superior">Superior</option>
+                      <option value="Advanced">Advanced</option>
+                      <option value="Medium">Medium</option>
+                      <option value="Basic">Basic</option>
+                      <option value="Minor">Minor</option>
+                    </select>
+                  </div>
+                </div>
+
                 <ArrayInput
                   label="Skills / Technologies Learned"
                   values={formData.skillsLearned}
@@ -284,15 +391,36 @@ const CertificatesManager = () => {
 
       {/* Certificates Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {certificates.map((cert) => (
+        {certificates.map((cert, index) => (
           <motion.div
             key={cert.id}
             layout
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden"
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden relative group"
           >
+            <div className="absolute right-4 top-4 flex flex-col space-y-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10 bg-white/80 dark:bg-gray-800/80 rounded shadow backdrop-blur-sm p-1">
+              <button
+                onClick={() => handleMove(index, 'up')}
+                // Disabled if it's the very first item OR if the item above it is of a different level
+                disabled={index === 0 || certificates[index - 1].level !== cert.level}
+                className="p-1 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 disabled:opacity-30 disabled:hover:text-gray-500"
+                title="Move up (within category)"
+              >
+                <ChevronUp className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => handleMove(index, 'down')}
+                // Disabled if it's the very last item OR if the item below it is of a different level
+                disabled={index === certificates.length - 1 || certificates[index + 1].level !== cert.level}
+                className="p-1 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 disabled:opacity-30 disabled:hover:text-gray-500"
+                title="Move down (within category)"
+              >
+                <ChevronDown className="w-5 h-5" />
+              </button>
+            </div>
+            
             {cert.certificateImage && (
               <img
                 src={cert.certificateImage}

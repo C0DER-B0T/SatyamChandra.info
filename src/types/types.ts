@@ -189,6 +189,8 @@ export interface Certificate {
   skillsLearned: string[]; // Array of skills/technologies
   verificationLink: string;
   certificateImage: string; // Cloudinary URL
+  date: string; // Format: "YYYY-MM" or "Month YYYY"
+  level: 'Minor' | 'Basic' | 'Medium' | 'Advanced' | 'Superior';
   order: number;
   createdAt: Date;
   updatedAt: Date;
@@ -201,6 +203,8 @@ export interface CertificateFormData {
   skillsLearned: string[];
   verificationLink: string;
   certificateImage: string;
+  date: string;
+  level: 'Minor' | 'Basic' | 'Medium' | 'Advanced' | 'Superior';
 }
 
 // ============================================

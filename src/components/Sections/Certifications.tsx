@@ -21,7 +21,23 @@ const Certifications = () => {
         id: doc.id,
         ...doc.data(),
       })) as Certificate[];
-      setCertificates(certsData.sort((a, b) => (b.order || 0) - (a.order || 0)));
+      const levelOrder: Record<string, number> = { 'Superior': 5, 'Advanced': 4, 'Medium': 3, 'Basic': 2, 'Minor': 1 };
+      const sorted = certsData.sort((a, b) => {
+        const levelDiff = (levelOrder[b.level] || 0) - (levelOrder[a.level] || 0);
+        if (levelDiff !== 0) return levelDiff;
+        
+        const aOrder = a.order !== undefined ? a.order : -1;
+        const bOrder = b.order !== undefined ? b.order : -1;
+        if (bOrder !== aOrder) {
+          return bOrder - aOrder;
+        }
+
+        if (a.date && b.date) {
+          return b.date.localeCompare(a.date);
+        }
+        return 0;
+      });
+      setCertificates(sorted);
     } catch (error) {
       console.error('Error fetching certificates:', error);
     } finally {
@@ -99,11 +115,23 @@ const Certifications = () => {
                         <Award className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                       </div>
                       <div>
-                        <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center flex-wrap gap-2">
                           {cert.certificateName}
+                          {cert.level && (
+                            <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
+                              cert.level === 'Superior' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
+                              cert.level === 'Advanced' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                              cert.level === 'Medium' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
+                              cert.level === 'Basic' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                              'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
+                            }`}>
+                              {cert.level}
+                            </span>
+                          )}
                         </h3>
-                        <p className="text-blue-600 dark:text-blue-400 font-medium">
-                          {cert.issuingOrganization}
+                        <p className="text-blue-600 dark:text-blue-400 font-medium text-sm flex items-center justify-between">
+                          <span>{cert.issuingOrganization}</span>
+                          {cert.date && <span className="text-gray-500 dark:text-gray-400 ml-4">{cert.date}</span>}
                         </p>
                       </div>
                     </div>
