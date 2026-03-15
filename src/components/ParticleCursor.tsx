@@ -38,20 +38,19 @@ const ParticleCursor: React.FC = () => {
       const lastY = mouseRef.current.y || y;
       
       const dist = Math.hypot(x - lastX, y - lastY);
-      // Increased steps for a denser, smoother trail
-      const steps = Math.min(Math.floor(dist / 2), 15);
+      // Increased steps by 1.2x (15 * 1.2 = 18)
+      const steps = Math.min(Math.floor(dist / 1.5), 18);
       
       for (let i = 0; i <= steps; i++) {
         const interpX = lastX + (x - lastX) * (i / steps);
         const interpY = lastY + (y - lastY) * (i / steps);
         
-        // Add particles with slight randomness for a more organic feel
         particlesRef.current.push(new Particle(interpX, interpY));
       }
       
-      // Increased cap slightly for better visuals on fast movements
-      if (particlesRef.current.length > 300) {
-        particlesRef.current = particlesRef.current.slice(-300);
+      // Increased cap by 1.2x (300 * 1.2 = 360)
+      if (particlesRef.current.length > 360) {
+        particlesRef.current = particlesRef.current.slice(-360);
       }
       
       mouseRef.current.x = x;
@@ -126,23 +125,26 @@ const ParticleCursor: React.FC = () => {
       animationFrameId = requestAnimationFrame(animate);
       
       const deltaTime = currentTime - lastTime;
+      // Cap deltaTime to avoid jumps after tab switching
+      const cappedDelta = Math.min(deltaTime, 32);
       lastTime = currentTime;
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
-      // Force render if no particles for testing
-      // ctx.fillStyle = 'red';
-      // ctx.fillRect(10, 10, 50, 50);
+      // Batch drawing state to minimize context changes
+      let lastColor = '';
 
       for (let i = 0; i < particlesRef.current.length; i++) {
         const p = particlesRef.current[i];
-        p.update(deltaTime);
-        p.draw(ctx);
+        p.update(cappedDelta);
         
         if (p.opacity <= 0) {
           particlesRef.current.splice(i, 1);
           i--;
+          continue;
         }
+
+        p.draw(ctx);
       }
     };
 
@@ -153,7 +155,7 @@ const ParticleCursor: React.FC = () => {
       window.removeEventListener('mousemove', handleMouseMove);
       cancelAnimationFrame(animationFrameId);
     };
-  }, [theme]);
+  }, []); // Remove [theme] dependency to prevent re-initialization flashes
 
   return (
     <canvas

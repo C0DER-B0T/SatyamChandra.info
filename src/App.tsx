@@ -61,6 +61,13 @@ const PortfolioHome = () => {
     
     setIsNavigating(true);
     setActiveTab(tab);
+    
+    // Smooth scroll to top of main container when tab changes
+    const mainEl = document.querySelector('main');
+    if (mainEl) {
+      mainEl.scrollTo({ top: 0, behavior: 'auto' });
+    }
+
     // Increased timeout to ensure animation state is stable
     setTimeout(() => {
       setIsNavigating(false);
@@ -87,6 +94,7 @@ const PortfolioHome = () => {
 
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
+      // Use a lock to prevent processing inputs during navigation
       if (isNavigating) {
         if (e.cancelable) e.preventDefault();
         return;
@@ -98,18 +106,19 @@ const PortfolioHome = () => {
       // Prevent default scroll behavior if not internal scroll
       if (e.cancelable) e.preventDefault();
 
-      // Prevent multiple navigation triggers
+      // Prevent multiple navigation triggers with a robust cooldown
       const now = Date.now();
-      if (now - lastScrollTime.current < 1200) return;
+      if (now - lastScrollTime.current < 1000) return;
 
       const currentIndex = sectionIds.indexOf(activeTab);
       
-      if (e.deltaY > 20) {
+      // Increased threshold for wheel sensitivity
+      if (e.deltaY > 30) {
         if (currentIndex < sectionIds.length - 1) {
           lastScrollTime.current = now;
           handleTabChange(sectionIds[currentIndex + 1]);
         }
-      } else if (e.deltaY < -20) {
+      } else if (e.deltaY < -30) {
         if (currentIndex > 0) {
           lastScrollTime.current = now;
           handleTabChange(sectionIds[currentIndex - 1]);
@@ -132,25 +141,38 @@ const PortfolioHome = () => {
       const touchCurrentY = e.touches[0].clientY;
       const deltaY = touchStartY.current - touchCurrentY;
       
-      // If we are at the top and swiping down (deltaY < 0), prevent pull-to-refresh
-      if (deltaY < -10 && activeTab === 'home') {
+      // Prevent pull-to-refresh on mobile when at the top of the page
+      if (deltaY < 0 && window.scrollY === 0) {
         const isInternal = checkInternalScroll(touchTarget.current!, deltaY);
         if (!isInternal && e.cancelable) e.preventDefault();
       }
 
-      // If we are navigating, prevent all touch moves
-      if (isNavigating && e.cancelable) e.preventDefault();
+      // If it's a significant vertical swipe, and we're not internally scrolling,
+      // prevent default to ensure smooth navigation and no browser interference
+      if (Math.abs(deltaY) > 10) {
+        const isInternal = checkInternalScroll(touchTarget.current!, deltaY);
+        if (!isInternal && e.cancelable) e.preventDefault();
+      }
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
-      if (touchStartY.current === null || isNavigating) return;
+      if (touchStartY.current === null || touchStartX.current === null || isNavigating) return;
       
       const touchEndY = e.changedTouches[0].clientY;
+      const touchEndX = e.changedTouches[0].clientX;
       const deltaY = touchStartY.current - touchEndY;
+      const deltaX = touchStartX.current - touchEndX;
       const now = Date.now();
 
+      // If it's more of a horizontal swipe than vertical, ignore it for tab navigation
+      if (Math.abs(deltaX) > Math.abs(deltaY)) {
+        touchStartY.current = null;
+        touchStartX.current = null;
+        return;
+      }
+
       // Sensitivity check: must be a significant swipe (80px) and cooldown passed
-      if (Math.abs(deltaY) > 80 && now - lastScrollTime.current > 1200) {
+      if (Math.abs(deltaY) > 80 && now - lastScrollTime.current > 1000) {
         const isInternal = checkInternalScroll(touchTarget.current!, deltaY);
         if (isInternal) {
           touchStartY.current = null;
@@ -204,9 +226,9 @@ const PortfolioHome = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5, duration: 0.5 }}
-          className="text-lg text-gray-600 dark:text-gray-400"
+          className="text-lg text-gray-600 dark:text-gray-400 text-center px-4"
         >
-          Welcome to my Portfolio
+          Use Desktop For Better Viewing Experience
         </motion.div>
       </div>
     );
@@ -218,48 +240,59 @@ const PortfolioHome = () => {
       <ParticleCursor />
       <Navbar activeTab={activeTab} onTabChange={handleTabChange} />
       <ThemeToggle />
+
+      {/* Persistent Experience Hint */}
+      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] md:hidden">
+        <motion.div 
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 3, duration: 0.5 }}
+          className="bg-black/50 dark:bg-white/10 backdrop-blur-md text-white dark:text-gray-200 text-[10px] py-1.5 px-3 rounded-full border border-white/10"
+        >
+          Use Desktop for better experience
+        </motion.div>
+      </div>
       
-      <main className="md:ml-20 pt-16 md:pt-0 h-screen relative">
-        <AnimatePresence mode="popLayout" initial={false} custom={direction}>
+      <main className="md:ml-20 pt-16 md:pt-0 h-screen relative bg-white dark:bg-gray-900 overflow-hidden">
+        <AnimatePresence mode="wait" initial={false} custom={direction}>
           <motion.div
             key={activeTab}
             custom={direction}
             variants={{
               enter: (direction: number) => ({
-                y: direction > 0 ? '100%' : direction < 0 ? '-100%' : 0,
+                y: direction > 0 ? '30%' : direction < 0 ? '-30%' : 0,
                 opacity: 0,
-                scale: 0.98
+                scale: 0.95,
+                filter: 'blur(10px)'
               }),
               center: {
                 zIndex: 1,
                 y: 0,
                 opacity: 1,
-                scale: 1
+                scale: 1,
+                filter: 'blur(0px)'
               },
               exit: (direction: number) => ({
                 zIndex: 0,
-                y: direction < 0 ? '100%' : direction > 0 ? '-100%' : 0,
+                y: direction < 0 ? '30%' : direction > 0 ? '-30%' : 0,
                 opacity: 0,
-                scale: 1.02
+                scale: 1.05,
+                filter: 'blur(10px)'
               })
             }}
             initial="enter"
             animate="center"
             exit="exit"
             transition={{
-              y: { type: "spring", stiffness: 400, damping: 40, mass: 1 },
+              y: { type: "spring", stiffness: 250, damping: 25 },
               opacity: { duration: 0.3 },
-              scale: { duration: 0.4 }
+              scale: { duration: 0.4 },
+              filter: { duration: 0.3 }
             }}
-            className="h-full w-full overflow-y-auto overflow-x-hidden no-scrollbar absolute inset-0 bg-white dark:bg-gray-900"
-            style={{ willChange: 'transform, opacity' }}
+            className="h-full w-full overflow-y-auto overflow-x-hidden no-scrollbar bg-white dark:bg-gray-900 gpu-accel"
           >
             <div className="min-h-full w-full">
-              <Suspense fallback={
-                <div className="flex items-center justify-center h-full">
-                  <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                </div>
-              }>
+              <Suspense fallback={null}>
                 {activeTab === 'home' && <Hero />}
                 {activeTab === 'about' && <About />}
                 {activeTab === 'education' && <Education />}
