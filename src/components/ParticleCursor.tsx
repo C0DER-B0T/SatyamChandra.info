@@ -38,18 +38,20 @@ const ParticleCursor: React.FC = () => {
       const lastY = mouseRef.current.y || y;
       
       const dist = Math.hypot(x - lastX, y - lastY);
-      // More conservative interpolation to prevent CPU spikes
-      const steps = Math.min(Math.floor(dist / 4), 6);
+      // Increased steps for a denser, smoother trail
+      const steps = Math.min(Math.floor(dist / 2), 15);
       
       for (let i = 0; i <= steps; i++) {
         const interpX = lastX + (x - lastX) * (i / steps);
         const interpY = lastY + (y - lastY) * (i / steps);
+        
+        // Add particles with slight randomness for a more organic feel
         particlesRef.current.push(new Particle(interpX, interpY));
       }
       
-      // Keep particle count strictly low for stability
-      if (particlesRef.current.length > 150) {
-        particlesRef.current = particlesRef.current.slice(-150);
+      // Increased cap slightly for better visuals on fast movements
+      if (particlesRef.current.length > 300) {
+        particlesRef.current = particlesRef.current.slice(-300);
       }
       
       mouseRef.current.x = x;
@@ -57,6 +59,10 @@ const ParticleCursor: React.FC = () => {
     };
 
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
+
+    // Initial clear
+    ctx.fillStyle = 'rgba(0,0,0,0)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     const colors = [
       '59, 130, 246',   // Blue
@@ -78,32 +84,40 @@ const ParticleCursor: React.FC = () => {
       constructor(x: number, y: number) {
         this.x = x;
         this.y = y;
-        this.size = Math.random() * 1.5 + 1;
-        this.speedX = (Math.random() - 0.5) * 1.2;
-        this.speedY = (Math.random() - 0.5) * 1.2;
+        this.size = Math.random() * 2 + 1;
+        this.speedX = (Math.random() - 0.5) * 2;
+        this.speedY = (Math.random() - 0.5) * 2;
         this.opacity = 1;
         this.colorBase = colors[Math.floor(Math.random() * colors.length)];
       }
 
       update(deltaTime: number) {
-        const timeFactor = Math.min(deltaTime / 16.67, 3); // Cap timeFactor to prevent jumps
+        const timeFactor = deltaTime / 16.67; 
         this.x += this.speedX * timeFactor;
         this.y += this.speedY * timeFactor;
-        if (this.size > 0.1) this.size -= 0.015 * timeFactor;
-        this.opacity -= 0.01 * timeFactor; 
+        if (this.size > 0.1) this.size -= 0.02 * timeFactor;
+        this.opacity -= 0.012 * timeFactor; 
       }
 
       draw(context: CanvasRenderingContext2D) {
         const alpha = Math.max(0, this.opacity);
-        
-        // Single draw with shadow for smoother glow
-        context.shadowBlur = 8;
-        context.shadowColor = `rgba(${this.colorBase}, ${alpha})`;
+        // Core
         context.fillStyle = `rgba(${this.colorBase}, ${alpha})`;
         context.beginPath();
         context.arc(this.x, this.y, this.size, 0, Math.PI * 2);
         context.fill();
-        context.shadowBlur = 0; // Reset shadow for performance
+        
+        // Mid Glow
+        context.fillStyle = `rgba(${this.colorBase}, ${alpha * 0.4})`;
+        context.beginPath();
+        context.arc(this.x, this.y, this.size * 2.5, 0, Math.PI * 2);
+        context.fill();
+
+        // Outer Glow
+        context.fillStyle = `rgba(${this.colorBase}, ${alpha * 0.15})`;
+        context.beginPath();
+        context.arc(this.x, this.y, this.size * 5, 0, Math.PI * 2);
+        context.fill();
       }
     }
 
@@ -114,20 +128,21 @@ const ParticleCursor: React.FC = () => {
       const deltaTime = currentTime - lastTime;
       lastTime = currentTime;
 
-      // Use a slightly faster clear
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
+      // Force render if no particles for testing
+      // ctx.fillStyle = 'red';
+      // ctx.fillRect(10, 10, 50, 50);
+
       for (let i = 0; i < particlesRef.current.length; i++) {
         const p = particlesRef.current[i];
         p.update(deltaTime);
+        p.draw(ctx);
         
-        if (p.opacity <= 0 || p.size <= 0.1) {
+        if (p.opacity <= 0) {
           particlesRef.current.splice(i, 1);
           i--;
-          continue;
         }
-        
-        p.draw(ctx);
       }
     };
 
