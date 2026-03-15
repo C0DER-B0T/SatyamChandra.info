@@ -22,21 +22,36 @@ const About = () => {
   const lastDragX = useRef(0);
   const dragVelocity = useRef(0);
 
+  const cardRafRef = useRef<number | null>(null);
+
   const handleCardMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (isDragging.current) return; // Don't tilt while dragging
     if (isSwinging) return;
     if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    const mouseX = e.clientX - centerX;
-    const mouseY = e.clientY - centerY;
-    const rotateY = (mouseX / (rect.width / 2)) * 15;
-    const rotateX = -(mouseY / (rect.height / 2)) * 8;
-    setCardRotate({ x: rotateX, y: rotateY });
+    
+    if (cardRafRef.current) return;
+
+    cardRafRef.current = window.requestAnimationFrame(() => {
+      const rect = cardRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const mouseX = e.clientX - centerX;
+      const mouseY = e.clientY - centerY;
+      const rotateY = (mouseX / (rect.width / 2)) * 15;
+      const rotateX = -(mouseY / (rect.height / 2)) * 8;
+      
+      setCardRotate({ x: rotateX, y: rotateY });
+      cardRafRef.current = null;
+    });
   }, [isSwinging]);
 
   const handleCardMouseLeave = useCallback(() => {
+    if (cardRafRef.current) {
+      window.cancelAnimationFrame(cardRafRef.current);
+      cardRafRef.current = null;
+    }
     if (!isSwinging && !isDragging.current) {
       setCardRotate({ x: 0, y: 0 });
     }

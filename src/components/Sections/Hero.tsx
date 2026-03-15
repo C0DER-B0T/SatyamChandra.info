@@ -18,25 +18,41 @@ const Hero = () => {
   const [glow, setGlow] = useState({ x: 50, y: 50 });
   const [isHovering, setIsHovering] = useState(false);
 
+  const isHoveringRef = useRef(false);
+  const rafRef = useRef<number | null>(null);
+
   const handleProfileMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!profileRef.current) return;
-    const rect = profileRef.current.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    const mouseX = e.clientX - centerX;
-    const mouseY = e.clientY - centerY;
-    // Rotate up to 25 degrees
-    const rotateY = (mouseX / (rect.width / 2)) * 25;
-    const rotateX = -(mouseY / (rect.height / 2)) * 25;
-    // Glow position as percentage
-    const glowX = ((e.clientX - rect.left) / rect.width) * 100;
-    const glowY = ((e.clientY - rect.top) / rect.height) * 100;
-    setRotate({ x: rotateX, y: rotateY });
-    setGlow({ x: glowX, y: glowY });
-    setIsHovering(true);
+    
+    if (rafRef.current) return;
+
+    rafRef.current = window.requestAnimationFrame(() => {
+      const rect = profileRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const mouseX = e.clientX - centerX;
+      const mouseY = e.clientY - centerY;
+      // Rotate up to 25 degrees
+      const rotateY = (mouseX / (rect.width / 2)) * 25;
+      const rotateX = -(mouseY / (rect.height / 2)) * 25;
+      // Glow position as percentage
+      const glowX = ((e.clientX - rect.left) / rect.width) * 100;
+      const glowY = ((e.clientY - rect.top) / rect.height) * 100;
+      
+      setRotate({ x: rotateX, y: rotateY });
+      setGlow({ x: glowX, y: glowY });
+      setIsHovering(true);
+      rafRef.current = null;
+    });
   }, []);
 
   const handleProfileMouseLeave = useCallback(() => {
+    if (rafRef.current) {
+      window.cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
     setRotate({ x: 0, y: 0 });
     setGlow({ x: 50, y: 50 });
     setIsHovering(false);
@@ -225,39 +241,34 @@ const Hero = () => {
 
             {/* Resume Button */}
             {homeData.resumeLink && (
-              <motion.a
-                href={homeData.resumeLink}
-                download="Resume.pdf"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center space-x-2 px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg shadow-lg hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-300"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.98 }}
+              <motion.div
+                className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6, duration: 0.5 }}
               >
-                <Download className="w-5 h-5" />
-                <span>Download Resume</span>
-              </motion.a>
+                <motion.a
+                  href={homeData.resumeLink}
+                  download="Resume.pdf"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg shadow-lg hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-300"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Download className="w-5 h-5" />
+                  <span>Download Resume</span>
+                </motion.a>
+              </motion.div>
             )}
-
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.8, duration: 0.5 }}
-              className="mt-6 text-sm text-gray-500 dark:text-gray-400"
-            >
-              💡 Best viewed on desktop for optimal experience
-            </motion.div>
           </motion.div>
 
           {/* Right Content - 3D Profile Picture with Extraordinary Parallax */}
           <motion.div
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
-            className="flex justify-center lg:justify-end"
+            className="flex justify-center lg:justify-end order-first lg:order-last mb-8 lg:mb-0"
           >
             {homeData.profilePicture ? (
               <div

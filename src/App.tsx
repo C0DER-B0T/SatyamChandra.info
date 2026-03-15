@@ -1,27 +1,28 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Hero from './components/Sections/Hero';
-import AIDemo from './components/Sections/AIDemo';
-import About from './components/Sections/About';
-import Education from './components/Sections/Education';
-import Work from './components/Sections/Work';
-import Skills from './components/Sections/Skills';
-import Projects from './components/Sections/Projects';
-import Certifications from './components/Sections/Certifications';
-import Achievements from './components/Sections/Achievements';
-import Contact from './components/Sections/Contact';
+
+// Lazy load sections for better performance
+const Hero = lazy(() => import('./components/Sections/Hero'));
+const About = lazy(() => import('./components/Sections/About'));
+const Education = lazy(() => import('./components/Sections/Education'));
+const Work = lazy(() => import('./components/Sections/Work'));
+const Skills = lazy(() => import('./components/Sections/Skills'));
+const Projects = lazy(() => import('./components/Sections/Projects'));
+const Certifications = lazy(() => import('./components/Sections/Certifications'));
+const Achievements = lazy(() => import('./components/Sections/Achievements'));
+const Contact = lazy(() => import('./components/Sections/Contact'));
+
 import Navbar from './components/Navbar';
 import ThemeToggle from './components/ThemeToggle';
-import { ThemeProvider } from './context/ThemeContext';
-import ParticleCursor from './components/ParticleCursor';
 import Login from './pages/admin/Login';
 import Dashboard from './pages/admin/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
+import ParticlesBackground from './components/ParticlesBackground';
+import ParticleCursor from './components/ParticleCursor';
 
 const sectionIds = [
   'home',
-  'ai-demo',
   'about',
   'education',
   'work',
@@ -35,8 +36,10 @@ const sectionIds = [
 const PortfolioHome = () => {
   const [activeTab, setActiveTab] = useState('home');
   const [isLoading, setIsLoading] = useState(true);
-  const [scrollTab, setScrollTab] = useState('');
-  const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
+  const [isNavigating, setIsNavigating] = useState(false);
+  const [direction, setDirection] = useState(0); // 1 for next, -1 for previous
+  const lastScrollTime = useRef(0);
+  const touchStartY = useRef<number | null>(null);
 
   useEffect(() => {
     // Simulate loading time
@@ -46,43 +49,110 @@ const PortfolioHome = () => {
     return () => clearTimeout(timer);
   }, []);
 
+  const handleTabChange = useCallback((tab: string) => {
+    if (activeTab === tab || isNavigating) return;
+    
+    const currentIndex = sectionIds.indexOf(activeTab);
+    const nextIndex = sectionIds.indexOf(tab);
+    setDirection(nextIndex > currentIndex ? 1 : -1);
+    
+    setIsNavigating(true);
+    setActiveTab(tab);
+    // Increased timeout to ensure animation state is stable
+    setTimeout(() => {
+      setIsNavigating(false);
+    }, 1000);
+  }, [activeTab, isNavigating]);
+
   useEffect(() => {
-    const handleScroll = () => {
-      let found = false;
-      for (let i = sectionIds.length - 1; i >= 0; i--) {
-        const section = document.getElementById(sectionIds[i]);
-        if (section) {
-          const rect = section.getBoundingClientRect();
-          if (rect.top <= 120) {
-            if (activeTab !== sectionIds[i]) {
-              setActiveTab(sectionIds[i]);
-              setScrollTab(sectionIds[i]);
-              if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
-              scrollTimeout.current = setTimeout(() => setScrollTab(''), 1000);
-            }
-            found = true;
+    const handleWheel = (e: WheelEvent) => {
+      // Allow scrolling within the section if it has overflow
+      let target = e.target as HTMLElement;
+      let isInternalScroll = false;
+
+      while (target && target !== document.body) {
+        const style = window.getComputedStyle(target);
+        const overflow = style.overflowY;
+        if ((overflow === 'auto' || overflow === 'scroll') && target.scrollHeight > target.clientHeight) {
+          if (e.deltaY > 0 && target.scrollTop + target.clientHeight < target.scrollHeight - 1) {
+            isInternalScroll = true;
+            break;
+          }
+          if (e.deltaY < 0 && target.scrollTop > 1) {
+            isInternalScroll = true;
             break;
           }
         }
+        target = target.parentElement as HTMLElement;
       }
-      if (!found && activeTab !== 'home') {
-        setActiveTab('home');
-        setScrollTab('home');
-        if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
-        scrollTimeout.current = setTimeout(() => setScrollTab(''), 1000);
+
+      if (isInternalScroll) return;
+
+      // Prevent default scroll behavior if not internal scroll
+      if (e.cancelable) e.preventDefault();
+
+      // Prevent multiple navigation triggers
+      const now = Date.now();
+      if (now - lastScrollTime.current < 1000 || isNavigating) return;
+
+      const currentIndex = sectionIds.indexOf(activeTab);
+      
+      // Use sign of deltaY for more cross-browser consistency
+      if (e.deltaY > 0) {
+        // Scroll down - next tab
+        if (currentIndex < sectionIds.length - 1) {
+          lastScrollTime.current = now;
+          handleTabChange(sectionIds[currentIndex + 1]);
+        }
+      } else if (e.deltaY < 0) {
+        // Scroll up - previous tab
+        if (currentIndex > 0) {
+          lastScrollTime.current = now;
+          handleTabChange(sectionIds[currentIndex - 1]);
+        }
       }
     };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [activeTab]);
 
-  const handleTabChange = (tab: string) => {
-    setActiveTab(tab);
-    const element = document.getElementById(tab);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
+    const handleTouchStart = (e: TouchEvent) => {
+      touchStartY.current = e.touches[0].clientY;
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (touchStartY.current === null || isNavigating) return;
+      
+      const touchEndY = e.changedTouches[0].clientY;
+      const deltaY = touchStartY.current - touchEndY;
+      const now = Date.now();
+
+      if (Math.abs(deltaY) > 50 && now - lastScrollTime.current > 1000) {
+        const currentIndex = sectionIds.indexOf(activeTab);
+        if (deltaY > 0) {
+          // Swipe up - next tab
+          if (currentIndex < sectionIds.length - 1) {
+            lastScrollTime.current = now;
+            handleTabChange(sectionIds[currentIndex + 1]);
+          }
+        } else {
+          // Swipe down - previous tab
+          if (currentIndex > 0) {
+            lastScrollTime.current = now;
+            handleTabChange(sectionIds[currentIndex - 1]);
+          }
+        }
+      }
+      touchStartY.current = null;
+    };
+
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    window.addEventListener('touchstart', handleTouchStart);
+    window.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      window.removeEventListener('wheel', handleWheel);
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [activeTab, isNavigating, handleTabChange]);
 
   if (isLoading) {
     return (
@@ -101,36 +171,70 @@ const PortfolioHome = () => {
           transition={{ delay: 0.5, duration: 0.5 }}
           className="text-lg text-gray-600 dark:text-gray-400"
         >
-          Use Desktop for Better Viewing Experience
+          Welcome to my Portfolio
         </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900">
-      <Navbar activeTab={activeTab} onTabChange={handleTabChange} scrollTab={scrollTab} />
+    <div className="min-h-screen bg-white dark:bg-gray-900 overflow-hidden relative">
+      <ParticlesBackground />
+      <ParticleCursor />
+      <Navbar activeTab={activeTab} onTabChange={handleTabChange} />
       <ThemeToggle />
       
-      <main className="ml-20">
-        <AnimatePresence mode="wait">
+      <main className="md:ml-20 pt-16 md:pt-0 h-screen relative">
+        <AnimatePresence mode="popLayout" initial={false} custom={direction}>
           <motion.div
             key={activeTab}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.5 }}
+            custom={direction}
+            variants={{
+              enter: (direction: number) => ({
+                y: direction > 0 ? '100%' : direction < 0 ? '-100%' : 0,
+                opacity: 0,
+                scale: 0.98
+              }),
+              center: {
+                zIndex: 1,
+                y: 0,
+                opacity: 1,
+                scale: 1
+              },
+              exit: (direction: number) => ({
+                zIndex: 0,
+                y: direction < 0 ? '100%' : direction > 0 ? '-100%' : 0,
+                opacity: 0,
+                scale: 1.02
+              })
+            }}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{
+              y: { type: "spring", stiffness: 400, damping: 40, mass: 1 },
+              opacity: { duration: 0.3 },
+              scale: { duration: 0.4 }
+            }}
+            className="h-full w-full overflow-y-auto overflow-x-hidden no-scrollbar absolute inset-0 bg-white dark:bg-gray-900"
           >
-            {activeTab === 'home' && <Hero />}
-            {activeTab === 'ai-demo' && <AIDemo />}
-            {activeTab === 'about' && <About />}
-            {activeTab === 'education' && <Education />}
-            {activeTab === 'work' && <Work />}
-            {activeTab === 'skills' && <Skills />}
-            {activeTab === 'projects' && <Projects />}
-            {activeTab === 'certifications' && <Certifications />}
-            {activeTab === 'achievements' && <Achievements />}
-            {activeTab === 'contact' && <Contact />}
+            <div className="min-h-full w-full">
+               <Suspense fallback={
+                 <div className="flex items-center justify-center h-full">
+                   <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                 </div>
+               }>
+                 {activeTab === 'home' && <Hero />}
+                 {activeTab === 'about' && <About />}
+                 {activeTab === 'education' && <Education />}
+                 {activeTab === 'work' && <Work />}
+                 {activeTab === 'skills' && <Skills />}
+                 {activeTab === 'projects' && <Projects />}
+                 {activeTab === 'certifications' && <Certifications />}
+                 {activeTab === 'achievements' && <Achievements />}
+                 {activeTab === 'contact' && <Contact />}
+               </Suspense>
+             </div>
           </motion.div>
         </AnimatePresence>
       </main>
@@ -142,6 +246,7 @@ const App = () => {
   return (
     <ThemeProvider>
       <Router>
+        <ParticlesBackground />
         <ParticleCursor />
         <Routes>
           {/* Public Portfolio Route */}

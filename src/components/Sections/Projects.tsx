@@ -10,9 +10,14 @@ import { Project } from '../../types/types';
 const Projects = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     fetchProjects();
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   const fetchProjects = async () => {
@@ -117,15 +122,16 @@ const Projects = () => {
                 className="h-full"
               >
                 <Tilt
-                  tiltMaxAngleX={10}
-                  tiltMaxAngleY={10}
+                  tiltMaxAngleX={isMobile ? 5 : 10}
+                  tiltMaxAngleY={isMobile ? 5 : 10}
                   glareEnable={true}
                   glareMaxOpacity={0.3}
                   glareColor="#ffffff"
                   glarePosition="all"
                   glareBorderRadius="12px"
-                  scale={1.02}
+                  scale={isMobile ? 1.01 : 1.02}
                   transitionSpeed={2500}
+                  tiltEnable={true}
                   className={`h-full bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 relative ${
                     project.level === 'Superior' ? 'ring-2 ring-yellow-500 shadow-[0_0_20px_rgba(234,179,8,0.3)] hover:shadow-[0_0_40px_rgba(234,179,8,0.6)] hover:-translate-y-2 z-10' : 
                     project.level === 'Advanced' ? 'ring-2 ring-purple-500/80 hover:ring-purple-500 transition-all' : 
