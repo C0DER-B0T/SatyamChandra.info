@@ -236,8 +236,6 @@ const PortfolioHome = () => {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 overflow-hidden relative">
-      <ParticlesBackground />
-      <ParticleCursor />
       <Navbar activeTab={activeTab} onTabChange={handleTabChange} />
       <ThemeToggle />
 
