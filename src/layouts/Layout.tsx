@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import CustomCursor from '../components/CustomCursor';
 import { useTheme } from '../context/ThemeContext';
 
 interface LayoutProps {
@@ -21,7 +20,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <div className={`${theme === 'dark' ? 'dark' : ''}`}>
       <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white transition-colors duration-300">
-        <CustomCursor />
         <Header />
         <main>
           {children}
