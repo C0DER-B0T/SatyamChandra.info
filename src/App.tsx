@@ -41,6 +41,8 @@ const PortfolioHome = () => {
   const [direction, setDirection] = useState(0); // 1 for next, -1 for previous
   const lastScrollTime = useRef(0);
   const touchStartY = useRef<number | null>(null);
+  const touchStartX = useRef<number | null>(null);
+  const touchTarget = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     // Simulate loading time
@@ -65,48 +67,46 @@ const PortfolioHome = () => {
     }, 1000);
   }, [activeTab, isNavigating]);
 
+  const checkInternalScroll = useCallback((target: HTMLElement, deltaY: number) => {
+    let current = target;
+    while (current && current !== document.body) {
+      const style = window.getComputedStyle(current);
+      const overflow = style.overflowY;
+      if ((overflow === 'auto' || overflow === 'scroll') && current.scrollHeight > current.clientHeight) {
+        if (deltaY > 0 && current.scrollTop + current.clientHeight < current.scrollHeight - 2) {
+          return true;
+        }
+        if (deltaY < 0 && current.scrollTop > 2) {
+          return true;
+        }
+      }
+      current = current.parentElement as HTMLElement;
+    }
+    return false;
+  }, []);
+
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
-      // Allow scrolling within the section if it has overflow
-      let target = e.target as HTMLElement;
-      let isInternalScroll = false;
-
-      while (target && target !== document.body) {
-        const style = window.getComputedStyle(target);
-        const overflow = style.overflowY;
-        if ((overflow === 'auto' || overflow === 'scroll') && target.scrollHeight > target.clientHeight) {
-          if (e.deltaY > 0 && target.scrollTop + target.clientHeight < target.scrollHeight - 1) {
-            isInternalScroll = true;
-            break;
-          }
-          if (e.deltaY < 0 && target.scrollTop > 1) {
-            isInternalScroll = true;
-            break;
-          }
-        }
-        target = target.parentElement as HTMLElement;
-      }
-
-      if (isInternalScroll) return;
+      if (isNavigating) return;
+      
+      const isInternal = checkInternalScroll(e.target as HTMLElement, e.deltaY);
+      if (isInternal) return;
 
       // Prevent default scroll behavior if not internal scroll
       if (e.cancelable) e.preventDefault();
 
       // Prevent multiple navigation triggers
       const now = Date.now();
-      if (now - lastScrollTime.current < 1000 || isNavigating) return;
+      if (now - lastScrollTime.current < 1000) return;
 
       const currentIndex = sectionIds.indexOf(activeTab);
       
-      // Use sign of deltaY for more cross-browser consistency
-      if (e.deltaY > 0) {
-        // Scroll down - next tab
+      if (e.deltaY > 10) {
         if (currentIndex < sectionIds.length - 1) {
           lastScrollTime.current = now;
           handleTabChange(sectionIds[currentIndex + 1]);
         }
-      } else if (e.deltaY < 0) {
-        // Scroll up - previous tab
+      } else if (e.deltaY < -10) {
         if (currentIndex > 0) {
           lastScrollTime.current = now;
           handleTabChange(sectionIds[currentIndex - 1]);
@@ -116,6 +116,23 @@ const PortfolioHome = () => {
 
     const handleTouchStart = (e: TouchEvent) => {
       touchStartY.current = e.touches[0].clientY;
+      touchStartX.current = e.touches[0].clientX;
+      touchTarget.current = e.target as HTMLElement;
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (touchStartY.current === null || isNavigating) return;
+      
+      const touchCurrentY = e.touches[0].clientY;
+      const deltaY = touchStartY.current - touchCurrentY;
+      
+      // If we are trying to swipe down at the top of a scrollable element or the page itself,
+      // prevent default to stop pull-to-refresh
+      const isInternal = checkInternalScroll(touchTarget.current!, deltaY);
+      
+      if (!isInternal) {
+        if (e.cancelable) e.preventDefault();
+      }
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
@@ -125,7 +142,13 @@ const PortfolioHome = () => {
       const deltaY = touchStartY.current - touchEndY;
       const now = Date.now();
 
-      if (Math.abs(deltaY) > 50 && now - lastScrollTime.current > 1000) {
+      if (Math.abs(deltaY) > 70 && now - lastScrollTime.current > 1000) {
+        const isInternal = checkInternalScroll(touchTarget.current!, deltaY);
+        if (isInternal) {
+          touchStartY.current = null;
+          return;
+        }
+
         const currentIndex = sectionIds.indexOf(activeTab);
         if (deltaY > 0) {
           // Swipe up - next tab
@@ -142,18 +165,21 @@ const PortfolioHome = () => {
         }
       }
       touchStartY.current = null;
+      touchTarget.current = null;
     };
 
     window.addEventListener('wheel', handleWheel, { passive: false });
-    window.addEventListener('touchstart', handleTouchStart);
-    window.addEventListener('touchend', handleTouchEnd);
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('touchend', handleTouchEnd, { passive: true });
 
     return () => {
       window.removeEventListener('wheel', handleWheel);
       window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [activeTab, isNavigating, handleTabChange]);
+  }, [activeTab, isNavigating, handleTabChange, checkInternalScroll]);
 
   if (isLoading) {
     return (
