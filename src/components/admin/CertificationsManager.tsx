@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Edit2, Trash2, Save, X, Loader } from 'lucide-react';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { Plus, Edit2, Trash2, Save, X, Loader, ChevronUp, ChevronDown } from 'lucide-react';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, writeBatch } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { Certification, CertificationFormData } from '../../types/types';
 
@@ -102,6 +102,45 @@ const CertificationsManager = () => {
   const handleSkillsChange = (value: string) => {
     const skillsArray = value.split(',').map(s => s.trim()).filter(s => s);
     setFormData({ ...formData, skills: skillsArray });
+  };
+
+  const handleMove = async (index: number, direction: 'up' | 'down') => {
+    if (
+      (direction === 'up' && index === 0) ||
+      (direction === 'down' && index === certifications.length - 1)
+    ) return;
+
+    const newCerts = [...certifications];
+    const swapIndex = direction === 'up' ? index - 1 : index + 1;
+
+    // Swap strictly visually for optimistic UI update
+    const temp = newCerts[index];
+    newCerts[index] = newCerts[swapIndex];
+    newCerts[swapIndex] = temp;
+
+    // Fix the order values continuously 
+    const orderedCerts = newCerts.map((cert, i) => ({
+      ...cert,
+      order: newCerts.length - 1 - i // descending order like how it's sorted
+    }));
+
+    setCertifications(orderedCerts);
+
+    try {
+      const batch = writeBatch(db);
+      // Update both swapped documents
+      const item1Ref = doc(db, 'certifications', orderedCerts[index].id);
+      batch.update(item1Ref, { order: orderedCerts[index].order });
+
+      const item2Ref = doc(db, 'certifications', orderedCerts[swapIndex].id);
+      batch.update(item2Ref, { order: orderedCerts[swapIndex].order });
+
+      await batch.commit();
+    } catch (error) {
+      console.error('Error reordering certifications:', error);
+      alert('Failed to save new order');
+      fetchCertifications(); // Revert on failure
+    }
   };
 
   if (loading) {
@@ -243,16 +282,35 @@ const CertificationsManager = () => {
 
       {/* Certifications List */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {certifications.map((cert) => (
+        {certifications.map((cert, index) => (
           <motion.div
             key={cert.id}
             layout
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6"
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 relative group"
           >
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{cert.title}</h3>
+            <div className="absolute right-4 top-4 flex flex-col space-y-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+              <button
+                onClick={() => handleMove(index, 'up')}
+                disabled={index === 0}
+                className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-30 disabled:hover:text-gray-400"
+                title="Move up"
+              >
+                <ChevronUp className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => handleMove(index, 'down')}
+                disabled={index === certifications.length - 1}
+                className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-30 disabled:hover:text-gray-400"
+                title="Move down"
+              >
+                <ChevronDown className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 pr-10">{cert.title}</h3>
             <p className="text-blue-600 dark:text-blue-400 font-medium mb-2">{cert.issuer}</p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">{cert.date}</p>
             <p className="text-gray-600 dark:text-gray-300 mb-3 line-clamp-2">{cert.description}</p>

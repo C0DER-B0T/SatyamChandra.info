@@ -1,7 +1,7 @@
 import { useState, useEffect, ChangeEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Edit2, Trash2, Save, X, Upload, Loader } from 'lucide-react';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { Plus, Edit2, Trash2, Save, X, Upload, Loader, ChevronUp, ChevronDown } from 'lucide-react';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, writeBatch } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { uploadToCloudinary } from '../../config/cloudinary';
 import { Project, ProjectFormData } from '../../types/types';
@@ -37,7 +37,23 @@ const ProjectsManager = () => {
         id: doc.id,
         ...doc.data(),
       })) as Project[];
-      setProjects(projectsData.sort((a, b) => (b.order || 0) - (a.order || 0)));
+      const levelOrder: Record<string, number> = { 'Superior': 5, 'Advanced': 4, 'Medium': 3, 'Basic': 2, 'Minor': 1 };
+      const sorted = projectsData.sort((a, b) => {
+        const levelDiff = (levelOrder[b.level] || 0) - (levelOrder[a.level] || 0);
+        if (levelDiff !== 0) return levelDiff;
+        
+        const aOrder = a.order !== undefined ? a.order : -1;
+        const bOrder = b.order !== undefined ? b.order : -1;
+        if (bOrder !== aOrder) {
+          return bOrder - aOrder;
+        }
+
+        if (a.date && b.date) {
+          return b.date.localeCompare(a.date);
+        }
+        return 0;
+      });
+      setProjects(sorted);
     } catch (error) {
       console.error('Error fetching projects:', error);
     } finally {
@@ -131,6 +147,60 @@ const ProjectsManager = () => {
     });
     setEditingId(null);
     setShowForm(false);
+  };
+
+  const handleMove = async (index: number, direction: 'up' | 'down') => {
+    if (
+      (direction === 'up' && index === 0) ||
+      (direction === 'down' && index === projects.length - 1)
+    ) return;
+
+    const swapIndex = direction === 'up' ? index - 1 : index + 1;
+    
+    // Validate we are swapping within the exact same level
+    if (projects[index].level !== projects[swapIndex].level) {
+      return; 
+    }
+
+    const newProjects = [...projects];
+
+    // Swap strictly visually for optimistic UI update
+    const temp = newProjects[index];
+    newProjects[index] = newProjects[swapIndex];
+    newProjects[swapIndex] = temp;
+    
+    // We only need to fix the explicit order of the two swapped nodes.
+    // However, it's safer to ensure all items in THIS specific level grouping have sequential orders.
+    const currentLevel = projects[index].level;
+    
+    // Filter out only projects of the current level to rebuild their specific orders
+    const levelProjects = newProjects.filter(p => p.level === currentLevel);
+    
+    // Assign new descending orders for just this level's items
+    levelProjects.forEach((p, i) => {
+      p.order = levelProjects.length - 1 - i;
+    });
+
+    setProjects([...newProjects]);
+
+    try {
+      const batch = writeBatch(db);
+      
+      // We'll just batch write the newly calculated orders for the two items that swapped
+      // Since they are in the same level, swapping them and recalculating the level's orders
+      // is guaranteed to only mathematically change the orders of these two items.
+      const item1Ref = doc(db, 'projects', newProjects[index].id);
+      batch.update(item1Ref, { order: newProjects[index].order });
+
+      const item2Ref = doc(db, 'projects', newProjects[swapIndex].id);
+      batch.update(item2Ref, { order: newProjects[swapIndex].order });
+
+      await batch.commit();
+    } catch (error) {
+      console.error('Error reordering projects:', error);
+      alert('Failed to save new order');
+      fetchProjects(); // Revert on failure
+    }
   };
 
   if (loading) {
@@ -338,17 +408,37 @@ const ProjectsManager = () => {
         )}
       </AnimatePresence>
 
-      {/* Projects Grid */}
+      {/* Projects List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {projects.map((project) => (
+        {projects.map((project, index) => (
           <motion.div
             key={project.id}
             layout
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden"
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden relative group"
           >
+            <div className="absolute right-4 top-4 flex flex-col space-y-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10 bg-white/80 dark:bg-gray-800/80 rounded shadow backdrop-blur-sm p-1">
+              <button
+                onClick={() => handleMove(index, 'up')}
+                // Disabled if it's the very first item OR if the item above it is of a different level
+                disabled={index === 0 || projects[index - 1].level !== project.level}
+                className="p-1 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 disabled:opacity-30 disabled:hover:text-gray-500"
+                title="Move up (within category)"
+              >
+                <ChevronUp className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => handleMove(index, 'down')}
+                // Disabled if it's the very last item OR if the item below it is of a different level
+                disabled={index === projects.length - 1 || projects[index + 1].level !== project.level}
+                className="p-1 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 disabled:opacity-30 disabled:hover:text-gray-500"
+                title="Move down (within category)"
+              >
+                <ChevronDown className="w-5 h-5" />
+              </button>
+            </div>
             {project.coverPhoto && (
               <img
                 src={project.coverPhoto}

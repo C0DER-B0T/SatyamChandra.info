@@ -23,14 +23,22 @@ const Projects = () => {
         ...doc.data(),
       })) as Project[];
       
-      // Sort by hierarchy: Superior > Advanced > Medium > Basic > Minor, then by date (newest first)
+      // Sort by hierarchy: Superior > Advanced > Medium > Basic > Minor
+      // Then by custom `order` value, then by date (newest first)
       const levelOrder: Record<string, number> = { 'Superior': 5, 'Advanced': 4, 'Medium': 3, 'Basic': 2, 'Minor': 1 };
       const sorted = projectsData.sort((a, b) => {
         // Primary sort: by level
         const levelDiff = (levelOrder[b.level] || 0) - (levelOrder[a.level] || 0);
         if (levelDiff !== 0) return levelDiff;
         
-        // Secondary sort: by date (newest first)
+        // Secondary sort: by custom explicit order (descending like how things are added)
+        const aOrder = a.order !== undefined ? a.order : -1;
+        const bOrder = b.order !== undefined ? b.order : -1;
+        if (bOrder !== aOrder) {
+          return bOrder - aOrder;
+        }
+
+        // Tertiary sort: by date (newest first) fallback
         if (a.date && b.date) {
           return b.date.localeCompare(a.date);
         }
