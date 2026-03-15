@@ -41,8 +41,6 @@ const PortfolioHome = () => {
   const [direction, setDirection] = useState(0); // 1 for next, -1 for previous
   const lastScrollTime = useRef(0);
   const touchStartY = useRef<number | null>(null);
-  const touchStartX = useRef<number | null>(null);
-  const touchTarget = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     // Simulate loading time
@@ -242,14 +240,14 @@ const PortfolioHome = () => {
       <ThemeToggle />
 
       {/* Persistent Experience Hint */}
-      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] md:hidden">
+      <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[99999] md:hidden pointer-events-none">
         <motion.div 
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 3, duration: 0.5 }}
-          className="bg-black/50 dark:bg-white/10 backdrop-blur-md text-white dark:text-gray-200 text-[10px] py-1.5 px-3 rounded-full border border-white/10"
+          transition={{ delay: 1, duration: 0.5 }}
+          className="bg-blue-600/90 dark:bg-blue-500/90 backdrop-blur-md text-white text-[11px] py-2 px-4 rounded-full shadow-lg border border-white/20 whitespace-nowrap"
         >
-          Use Desktop for better experience
+          ✨ Use Desktop for the best experience
         </motion.div>
       </div>
       
