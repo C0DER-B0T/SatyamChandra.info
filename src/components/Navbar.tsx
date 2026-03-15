@@ -21,8 +21,8 @@ const Navbar = ({ activeTab, onTabChange, scrollTab }: NavbarProps) => {
   ];
 
   return (
-    <nav className="fixed top-0 left-0 h-screen w-20 bg-white dark:bg-gray-800 shadow-lg z-50">
-      <div className="flex flex-col items-center py-8 space-y-8">
+    <nav className="fixed top-0 left-0 h-screen w-20 bg-white dark:bg-gray-800 shadow-lg z-50 overflow-y-auto hide-scrollbar">
+      <div className="flex flex-col items-center justify-center min-h-full py-4 space-y-6">
         {tabs.map((tab) => (
           <motion.button
             key={tab.id}
