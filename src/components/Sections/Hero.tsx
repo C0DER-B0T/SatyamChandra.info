@@ -267,30 +267,66 @@ const Hero = () => {
                 className="relative cursor-pointer"
                 style={{ perspective: '1000px' }}
               >
-                {/* Outer orbiting ring 1 — moves opposite to tilt for parallax depth */}
+                {/* Outer orbiting ring 1 — proper circular gradient ring */}
                 <div
-                  className="absolute inset-[-24px] rounded-full pointer-events-none"
+                  className="absolute inset-[-24px] rounded-full pointer-events-none overflow-hidden"
                   style={{
-                    border: '2px solid transparent',
-                    borderImage: 'linear-gradient(135deg, rgba(59,130,246,0.5), rgba(168,85,247,0.5), rgba(59,130,246,0.15)) 1',
-                    borderRadius: '9999px',
+                    background: 'linear-gradient(135deg, rgba(59,130,246,0.5), rgba(168,85,247,0.5), rgba(59,130,246,0.15))',
                     transform: `rotateX(${rotate.x * -0.3}deg) rotateY(${rotate.y * -0.3}deg)`,
-                    transition: isHovering ? 'transform 0.1s ease-out' : 'transform 0.6s ease-out',
+                    transition: isHovering ? 'transform 0.1s ease-out, opacity 0.2s ease-out' : 'transform 0.6s ease-out, opacity 0.4s ease-out',
                     opacity: isHovering ? 1 : 0.3,
+                    padding: '2px',
+                    WebkitMaskImage: 'radial-gradient(circle, transparent 98%, black 98%)',
+                    maskImage: 'radial-gradient(circle, transparent 98%, black 98%)',
                   }}
-                />
+                >
+                  <div className="w-full h-full rounded-full bg-white dark:bg-gray-900" style={{ opacity: 0.95 }} />
+                </div>
 
-                {/* Outer orbiting ring 2 — moves WITH tilt but slower */}
+                {/* Outer orbiting ring 2 — proper circular dashed ring */}
                 <div
                   className="absolute inset-[-40px] rounded-full pointer-events-none"
                   style={{
-                    border: '1px dashed rgba(168,85,247,0.3)',
-                    borderRadius: '9999px',
+                    border: '1.5px dashed rgba(168,85,247,0.35)',
                     transform: `rotateX(${rotate.x * 0.15}deg) rotateY(${rotate.y * 0.15}deg) rotate(${rotate.y * 2}deg)`,
-                    transition: isHovering ? 'transform 0.15s ease-out' : 'transform 0.8s ease-out',
+                    transition: isHovering ? 'transform 0.15s ease-out, opacity 0.2s ease-out' : 'transform 0.8s ease-out, opacity 0.4s ease-out',
                     opacity: isHovering ? 0.8 : 0.15,
                   }}
                 />
+
+                {/* Glowing light particles radiating from background */}
+                {[...Array(12)].map((_, i) => {
+                  const angle = (i / 12) * Math.PI * 2;
+                  const baseRadius = 52 + (i % 4) * 4;
+                  const size = 3 + (i % 3) * 2;
+                  const delay = i * 0.15;
+                  return (
+                    <div
+                      key={`glow-${i}`}
+                      className="absolute rounded-full pointer-events-none"
+                      style={{
+                        width: `${size}px`,
+                        height: `${size}px`,
+                        top: `${50 + Math.sin(angle) * baseRadius}%`,
+                        left: `${50 + Math.cos(angle) * baseRadius}%`,
+                        transform: `translate(-50%, -50%) translateX(${rotate.y * (0.3 + (i % 3) * 0.15)}px) translateY(${-rotate.x * (0.3 + (i % 3) * 0.15)}px) scale(${isHovering ? 1 + Math.sin(Date.now() / 500 + i) * 0.3 : 0.5})`,
+                        background: i % 3 === 0
+                          ? 'rgba(59,130,246,0.9)'
+                          : i % 3 === 1
+                          ? 'rgba(168,85,247,0.9)'
+                          : 'rgba(255,255,255,0.8)',
+                        boxShadow: isHovering
+                          ? `0 0 ${8 + (i % 3) * 4}px ${4 + (i % 2) * 3}px ${
+                              i % 3 === 0 ? 'rgba(59,130,246,0.6)' : i % 3 === 1 ? 'rgba(168,85,247,0.6)' : 'rgba(255,255,255,0.4)'
+                            }`
+                          : 'none',
+                        transition: isHovering ? 'transform 0.15s ease-out, opacity 0.3s ease-out, box-shadow 0.3s ease-out' : 'transform 0.8s ease-out, opacity 0.6s ease-out',
+                        opacity: isHovering ? 0.85 : 0.1,
+                        animation: isHovering ? `pulse ${1.5 + (i % 3) * 0.5}s ease-in-out ${delay}s infinite` : 'none',
+                      }}
+                    />
+                  );
+                })}
 
                 {/* Glowing backdrop that follows cursor */}
                 <div
@@ -310,6 +346,18 @@ const Hero = () => {
                   style={{
                     opacity: isHovering ? 0.45 : 0.2,
                     transition: 'opacity 0.4s ease-out',
+                  }}
+                />
+
+                {/* Extra radial light burst on hover */}
+                <div
+                  className="absolute inset-[-16px] rounded-full pointer-events-none"
+                  style={{
+                    background: `radial-gradient(circle at 50% 50%, rgba(59,130,246,0.15) 0%, rgba(168,85,247,0.1) 30%, transparent 65%)`,
+                    filter: 'blur(12px)',
+                    transform: `scale(${isHovering ? 1.3 : 0.9})`,
+                    transition: isHovering ? 'transform 0.3s ease-out, opacity 0.3s ease-out' : 'transform 0.6s ease-out, opacity 0.6s ease-out',
+                    opacity: isHovering ? 1 : 0,
                   }}
                 />
 
@@ -334,7 +382,7 @@ const Hero = () => {
                     }}
                   />
 
-                  {/* Specular highlight overlay — simulates a light source following the cursor */}
+                  {/* Specular highlight overlay */}
                   <div
                     className="absolute inset-0 rounded-full pointer-events-none"
                     style={{
@@ -345,7 +393,7 @@ const Hero = () => {
                   />
                 </div>
 
-                {/* Floating particles / dots at different parallax depths */}
+                {/* Floating parallax dots */}
                 {[...Array(6)].map((_, i) => {
                   const angle = (i / 6) * Math.PI * 2;
                   const radius = 55 + (i % 3) * 8;
