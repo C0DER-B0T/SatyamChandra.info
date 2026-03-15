@@ -21,12 +21,12 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
 
   return (
     <nav className="fixed top-0 left-0 h-16 md:h-screen w-full md:w-20 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md shadow-lg z-50 transition-all duration-300">
-      <div className="flex flex-row md:flex-col items-center justify-between md:justify-start md:py-8 h-full md:space-y-8 px-1 md:px-0 overflow-x-auto no-scrollbar scroll-smooth">
+      <div className="flex flex-row md:flex-col items-center justify-start md:justify-start md:py-8 h-full md:space-y-8 px-1 md:px-0 overflow-x-auto no-scrollbar scroll-smooth">
         {tabs.map((tab) => (
           <motion.button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
-            className={`relative flex-shrink-0 p-2.5 md:p-3 mx-0.5 md:mx-0 rounded-lg transition-colors duration-300 ${
+            className={`relative flex-shrink-0 p-2 md:p-3 mx-0.5 md:mx-0 rounded-lg transition-colors duration-300 ${
               activeTab === tab.id
                 ? 'text-blue-600 dark:text-blue-400'
                 : 'text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400'
