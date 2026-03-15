@@ -1,15 +1,18 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Hero from './components/Sections/Hero';
-import About from './components/Sections/About';
-import Education from './components/Sections/Education';
-import Work from './components/Sections/Work';
-import Skills from './components/Sections/Skills';
-import Projects from './components/Sections/Projects';
-import Certifications from './components/Sections/Certifications';
-import Achievements from './components/Sections/Achievements';
-import Contact from './components/Sections/Contact';
+
+// Lazy load sections for maximum initial performance
+const Hero = lazy(() => import('./components/Sections/Hero'));
+const About = lazy(() => import('./components/Sections/About'));
+const Education = lazy(() => import('./components/Sections/Education'));
+const Work = lazy(() => import('./components/Sections/Work'));
+const Skills = lazy(() => import('./components/Sections/Skills'));
+const Projects = lazy(() => import('./components/Sections/Projects'));
+const Certifications = lazy(() => import('./components/Sections/Certifications'));
+const Achievements = lazy(() => import('./components/Sections/Achievements'));
+const Contact = lazy(() => import('./components/Sections/Contact'));
+
 import Navbar from './components/Navbar';
 import ThemeToggle from './components/ThemeToggle';
 import { ThemeProvider } from './context/ThemeContext';
@@ -215,17 +218,24 @@ const PortfolioHome = () => {
               scale: { duration: 0.4 }
             }}
             className="h-full w-full overflow-y-auto overflow-x-hidden no-scrollbar absolute inset-0 bg-white dark:bg-gray-900"
+            style={{ willChange: 'transform, opacity' }}
           >
             <div className="min-h-full w-full">
-              {activeTab === 'home' && <Hero />}
-              {activeTab === 'about' && <About />}
-              {activeTab === 'education' && <Education />}
-              {activeTab === 'work' && <Work />}
-              {activeTab === 'skills' && <Skills />}
-              {activeTab === 'projects' && <Projects />}
-              {activeTab === 'certifications' && <Certifications />}
-              {activeTab === 'achievements' && <Achievements />}
-              {activeTab === 'contact' && <Contact />}
+              <Suspense fallback={
+                <div className="flex items-center justify-center h-full">
+                  <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              }>
+                {activeTab === 'home' && <Hero />}
+                {activeTab === 'about' && <About />}
+                {activeTab === 'education' && <Education />}
+                {activeTab === 'work' && <Work />}
+                {activeTab === 'skills' && <Skills />}
+                {activeTab === 'projects' && <Projects />}
+                {activeTab === 'certifications' && <Certifications />}
+                {activeTab === 'achievements' && <Achievements />}
+                {activeTab === 'contact' && <Contact />}
+              </Suspense>
             </div>
           </motion.div>
         </AnimatePresence>

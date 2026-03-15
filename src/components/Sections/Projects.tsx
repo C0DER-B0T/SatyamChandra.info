@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { motion } from 'framer-motion';
 import { ExternalLink, Loader, Calendar } from 'lucide-react';
 import { FaGithub as Github } from 'react-icons/fa';
@@ -241,4 +241,4 @@ const Projects = () => {
   );
 };
 
-export default Projects;
+export default memo(Projects);

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { motion } from 'framer-motion';
 import { Download, Loader, Linkedin, Twitter, Mail, Facebook, Instagram, Youtube, MessageCircle } from 'lucide-react';
 import { FaGithub } from 'react-icons/fa';
@@ -445,4 +445,4 @@ const Hero = () => {
   );
 };
 
-export default Hero;
+export default memo(Hero);
