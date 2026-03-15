@@ -17,8 +17,14 @@ const About = () => {
   const [isSwinging, setIsSwinging] = useState(false);
   const swingRef = useRef<number | null>(null);
 
+  // Drag state
+  const isDragging = useRef(false);
+  const lastDragX = useRef(0);
+  const dragVelocity = useRef(0);
+
   const handleCardMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (isSwinging) return; // Don't tilt while swinging
+    if (isDragging.current) return; // Don't tilt while dragging
+    if (isSwinging) return;
     if (!cardRef.current) return;
     const rect = cardRef.current.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
@@ -31,31 +37,35 @@ const About = () => {
   }, [isSwinging]);
 
   const handleCardMouseLeave = useCallback(() => {
-    if (!isSwinging) {
+    if (!isSwinging && !isDragging.current) {
       setCardRotate({ x: 0, y: 0 });
     }
   }, [isSwinging]);
 
-  // Pendulum swing physics on click
-  const handleCardClick = useCallback(() => {
-    if (isSwinging) return;
+  // Start a swing animation with a given initial velocity
+  const startSwing = useCallback((initialVelocity: number) => {
+    // Cancel any running animation
+    if (swingRef.current) {
+      cancelAnimationFrame(swingRef.current);
+      swingRef.current = null;
+    }
+
     setIsSwinging(true);
     
-    let velocity = 35; // Initial angular velocity (degrees)
-    let angle = 0;
-    const damping = 0.96; // Energy loss per frame (higher = swings longer)
-    const gravity = 0.35; // Spring-back force (lower = wider arcs)
+    let velocity = initialVelocity;
+    let angle = swingAngle; // Start from current angle
+    const damping = 0.96;
+    const gravity = 0.35;
     let frame = 0;
     
     const animate = () => {
-      velocity += -angle * gravity; // Spring force
-      velocity *= damping; // Damping
+      velocity += -angle * gravity;
+      velocity *= damping;
       angle += velocity * 0.1;
       frame++;
       
       setSwingAngle(angle);
       
-      // Stop when energy is basically zero
       if (Math.abs(velocity) < 0.05 && Math.abs(angle) < 0.1 && frame > 20) {
         setSwingAngle(0);
         setIsSwinging(false);
@@ -66,7 +76,71 @@ const About = () => {
     };
     
     swingRef.current = requestAnimationFrame(animate);
-  }, [isSwinging]);
+  }, [swingAngle]);
+
+  // Click always triggers a swing (interrupts any current one)
+  const handleCardClick = useCallback((e: React.MouseEvent) => {
+    // Don't trigger click if we just finished dragging
+    if (isDragging.current) return;
+    
+    // Determine direction based on which side was clicked
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const clickX = e.clientX - (rect.left + rect.width / 2);
+    const direction = clickX > 0 ? 1 : -1;
+    
+    startSwing(35 * direction);
+  }, [startSwing]);
+
+  // Drag handlers
+  const handleDragStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDragging.current = true;
+    lastDragX.current = e.clientX;
+    dragVelocity.current = 0;
+    
+    // Cancel any running swing
+    if (swingRef.current) {
+      cancelAnimationFrame(swingRef.current);
+      swingRef.current = null;
+    }
+    setIsSwinging(false);
+    
+    const handleDragMove = (moveEvent: MouseEvent) => {
+      if (!isDragging.current || !cardRef.current) return;
+      
+      const deltaX = moveEvent.clientX - lastDragX.current;
+      dragVelocity.current = deltaX * 2; // Track velocity
+      lastDragX.current = moveEvent.clientX;
+      
+      // Convert pixel movement to angle
+      const rect = cardRef.current.getBoundingClientRect();
+      const angleDelta = (deltaX / rect.width) * 40;
+      
+      setSwingAngle(prev => {
+        const newAngle = prev + angleDelta;
+        // Clamp to reasonable range
+        return Math.max(-45, Math.min(45, newAngle));
+      });
+    };
+    
+    const handleDragEnd = () => {
+      isDragging.current = false;
+      window.removeEventListener('mousemove', handleDragMove);
+      window.removeEventListener('mouseup', handleDragEnd);
+      
+      // Launch swing from current position with drag velocity
+      const releaseVelocity = dragVelocity.current;
+      if (Math.abs(releaseVelocity) > 1 || Math.abs(swingAngle) > 1) {
+        startSwing(releaseVelocity);
+      } else {
+        setSwingAngle(0);
+      }
+    };
+    
+    window.addEventListener('mousemove', handleDragMove);
+    window.addEventListener('mouseup', handleDragEnd);
+  }, [startSwing, swingAngle]);
 
   // Cleanup animation on unmount
   useEffect(() => {
@@ -270,7 +344,7 @@ const About = () => {
                   style={{
                     transform: `rotate(${totalRotateZ * 0.3}deg)`,
                     transformOrigin: 'top center',
-                    transition: isSwinging ? 'none' : 'transform 0.15s ease-out',
+                    transition: (isSwinging || isDragging.current) ? 'none' : 'transform 0.15s ease-out',
                   }}
                 />
               </div>
@@ -279,19 +353,21 @@ const About = () => {
               <div
                 ref={cardRef}
                 onClick={handleCardClick}
+                onMouseDown={handleDragStart}
                 onMouseMove={handleCardMouseMove}
                 onMouseLeave={handleCardMouseLeave}
-                className="cursor-pointer select-none"
+                className="select-none"
                 style={{
                   perspective: '800px',
                   transformOrigin: 'top center',
+                  cursor: isDragging.current ? 'grabbing' : 'grab',
                 }}
               >
                 <div
                   style={{
                     transform: `rotateX(${totalRotateX}deg) rotateY(${totalRotateY}deg) rotateZ(${totalRotateZ}deg)`,
                     transformOrigin: 'top center',
-                    transition: isSwinging ? 'none' : 'transform 0.15s ease-out',
+                    transition: (isSwinging || isDragging.current) ? 'none' : 'transform 0.15s ease-out',
                     transformStyle: 'preserve-3d',
                   }}
                 >
