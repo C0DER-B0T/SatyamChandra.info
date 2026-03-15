@@ -73,10 +73,10 @@ const PortfolioHome = () => {
       const style = window.getComputedStyle(current);
       const overflow = style.overflowY;
       if ((overflow === 'auto' || overflow === 'scroll') && current.scrollHeight > current.clientHeight) {
-        if (deltaY > 0 && current.scrollTop + current.clientHeight < current.scrollHeight - 2) {
+        if (deltaY > 0 && current.scrollTop + current.clientHeight < current.scrollHeight - 5) {
           return true;
         }
-        if (deltaY < 0 && current.scrollTop > 2) {
+        if (deltaY < 0 && current.scrollTop > 5) {
           return true;
         }
       }
@@ -87,7 +87,10 @@ const PortfolioHome = () => {
 
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
-      if (isNavigating) return;
+      if (isNavigating) {
+        if (e.cancelable) e.preventDefault();
+        return;
+      }
       
       const isInternal = checkInternalScroll(e.target as HTMLElement, e.deltaY);
       if (isInternal) return;
@@ -97,16 +100,16 @@ const PortfolioHome = () => {
 
       // Prevent multiple navigation triggers
       const now = Date.now();
-      if (now - lastScrollTime.current < 1000) return;
+      if (now - lastScrollTime.current < 1200) return;
 
       const currentIndex = sectionIds.indexOf(activeTab);
       
-      if (e.deltaY > 10) {
+      if (e.deltaY > 20) {
         if (currentIndex < sectionIds.length - 1) {
           lastScrollTime.current = now;
           handleTabChange(sectionIds[currentIndex + 1]);
         }
-      } else if (e.deltaY < -10) {
+      } else if (e.deltaY < -20) {
         if (currentIndex > 0) {
           lastScrollTime.current = now;
           handleTabChange(sectionIds[currentIndex - 1]);
@@ -121,18 +124,22 @@ const PortfolioHome = () => {
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (touchStartY.current === null || isNavigating) return;
+      if (touchStartY.current === null || isNavigating) {
+        if (e.cancelable) e.preventDefault();
+        return;
+      }
       
       const touchCurrentY = e.touches[0].clientY;
       const deltaY = touchStartY.current - touchCurrentY;
       
-      // If we are trying to swipe down at the top of a scrollable element or the page itself,
-      // prevent default to stop pull-to-refresh
-      const isInternal = checkInternalScroll(touchTarget.current!, deltaY);
-      
-      if (!isInternal) {
-        if (e.cancelable) e.preventDefault();
+      // If we are at the top and swiping down (deltaY < 0), prevent pull-to-refresh
+      if (deltaY < -10 && activeTab === 'home') {
+        const isInternal = checkInternalScroll(touchTarget.current!, deltaY);
+        if (!isInternal && e.cancelable) e.preventDefault();
       }
+
+      // If we are navigating, prevent all touch moves
+      if (isNavigating && e.cancelable) e.preventDefault();
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
@@ -142,7 +149,8 @@ const PortfolioHome = () => {
       const deltaY = touchStartY.current - touchEndY;
       const now = Date.now();
 
-      if (Math.abs(deltaY) > 70 && now - lastScrollTime.current > 1000) {
+      // Sensitivity check: must be a significant swipe (80px) and cooldown passed
+      if (Math.abs(deltaY) > 80 && now - lastScrollTime.current > 1200) {
         const isInternal = checkInternalScroll(touchTarget.current!, deltaY);
         if (isInternal) {
           touchStartY.current = null;
