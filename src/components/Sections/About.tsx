@@ -41,10 +41,10 @@ const About = () => {
     if (isSwinging) return;
     setIsSwinging(true);
     
-    let velocity = 18; // Initial angular velocity (degrees)
+    let velocity = 35; // Initial angular velocity (degrees)
     let angle = 0;
-    const damping = 0.92; // Energy loss per frame
-    const gravity = 0.5; // Spring-back force
+    const damping = 0.96; // Energy loss per frame (higher = swings longer)
+    const gravity = 0.35; // Spring-back force (lower = wider arcs)
     let frame = 0;
     
     const animate = () => {
