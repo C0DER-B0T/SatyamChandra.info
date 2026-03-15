@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Download, Loader, Linkedin, Twitter, Mail, Facebook, Instagram, Youtube, MessageCircle } from 'lucide-react';
 import { FaGithub } from 'react-icons/fa';
@@ -11,6 +11,36 @@ import { HomeFormData } from '../../types/types';
 const Hero = () => {
   const [homeData, setHomeData] = useState<HomeFormData | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // 3D Profile Picture state
+  const profileRef = useRef<HTMLDivElement>(null);
+  const [rotate, setRotate] = useState({ x: 0, y: 0 });
+  const [glow, setGlow] = useState({ x: 50, y: 50 });
+  const [isHovering, setIsHovering] = useState(false);
+
+  const handleProfileMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!profileRef.current) return;
+    const rect = profileRef.current.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const mouseX = e.clientX - centerX;
+    const mouseY = e.clientY - centerY;
+    // Rotate up to 25 degrees
+    const rotateY = (mouseX / (rect.width / 2)) * 25;
+    const rotateX = -(mouseY / (rect.height / 2)) * 25;
+    // Glow position as percentage
+    const glowX = ((e.clientX - rect.left) / rect.width) * 100;
+    const glowY = ((e.clientY - rect.top) / rect.height) * 100;
+    setRotate({ x: rotateX, y: rotateY });
+    setGlow({ x: glowX, y: glowY });
+    setIsHovering(true);
+  }, []);
+
+  const handleProfileMouseLeave = useCallback(() => {
+    setRotate({ x: 0, y: 0 });
+    setGlow({ x: 50, y: 50 });
+    setIsHovering(false);
+  }, []);
 
   useEffect(() => {
     fetchHomeData();
@@ -222,7 +252,7 @@ const Hero = () => {
             </motion.div>
           </motion.div>
 
-          {/* Right Content - Profile Picture with Hover Effect */}
+          {/* Right Content - 3D Profile Picture with Extraordinary Parallax */}
           <motion.div
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
@@ -230,19 +260,117 @@ const Hero = () => {
             className="flex justify-center lg:justify-end"
           >
             {homeData.profilePicture ? (
-              <motion.div 
-                className="relative group cursor-pointer"
-                whileHover={{ scale: 1.05 }}
-                transition={{ duration: 0.3 }}
+              <div
+                ref={profileRef}
+                onMouseMove={handleProfileMouseMove}
+                onMouseLeave={handleProfileMouseLeave}
+                className="relative cursor-pointer"
+                style={{ perspective: '1000px' }}
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-purple-600 rounded-full blur-2xl opacity-30 group-hover:opacity-50 transition-opacity duration-300 animate-pulse" />
-                <img
-                  src={homeData.profilePicture}
-                  alt={homeData.displayName}
-                  className="relative w-64 h-64 sm:w-80 sm:h-80 lg:w-96 lg:h-96 rounded-full object-cover border-8 border-white dark:border-gray-800 shadow-2xl"
-                  loading="eager"
+                {/* Outer orbiting ring 1 — moves opposite to tilt for parallax depth */}
+                <div
+                  className="absolute inset-[-24px] rounded-full pointer-events-none"
+                  style={{
+                    border: '2px solid transparent',
+                    borderImage: 'linear-gradient(135deg, rgba(59,130,246,0.5), rgba(168,85,247,0.5), rgba(59,130,246,0.15)) 1',
+                    borderRadius: '9999px',
+                    transform: `rotateX(${rotate.x * -0.3}deg) rotateY(${rotate.y * -0.3}deg)`,
+                    transition: isHovering ? 'transform 0.1s ease-out' : 'transform 0.6s ease-out',
+                    opacity: isHovering ? 1 : 0.3,
+                  }}
                 />
-              </motion.div>
+
+                {/* Outer orbiting ring 2 — moves WITH tilt but slower */}
+                <div
+                  className="absolute inset-[-40px] rounded-full pointer-events-none"
+                  style={{
+                    border: '1px dashed rgba(168,85,247,0.3)',
+                    borderRadius: '9999px',
+                    transform: `rotateX(${rotate.x * 0.15}deg) rotateY(${rotate.y * 0.15}deg) rotate(${rotate.y * 2}deg)`,
+                    transition: isHovering ? 'transform 0.15s ease-out' : 'transform 0.8s ease-out',
+                    opacity: isHovering ? 0.8 : 0.15,
+                  }}
+                />
+
+                {/* Glowing backdrop that follows cursor */}
+                <div
+                  className="absolute inset-[-8px] rounded-full pointer-events-none"
+                  style={{
+                    background: `radial-gradient(circle at ${glow.x}% ${glow.y}%, rgba(59,130,246,0.5) 0%, rgba(168,85,247,0.3) 40%, transparent 70%)`,
+                    filter: 'blur(20px)',
+                    transform: `rotateX(${rotate.x * 0.5}deg) rotateY(${rotate.y * 0.5}deg) scale(${isHovering ? 1.15 : 1})`,
+                    transition: isHovering ? 'transform 0.1s ease-out, background 0.1s ease-out' : 'transform 0.6s ease-out, opacity 0.6s ease-out',
+                    opacity: isHovering ? 0.8 : 0.3,
+                  }}
+                />
+
+                {/* Pulsing ambient glow behind picture */}
+                <div
+                  className="absolute inset-0 bg-gradient-to-br from-blue-400 to-purple-600 rounded-full blur-2xl animate-pulse pointer-events-none"
+                  style={{
+                    opacity: isHovering ? 0.45 : 0.2,
+                    transition: 'opacity 0.4s ease-out',
+                  }}
+                />
+
+                {/* The actual 3D-rotating profile picture */}
+                <div
+                  style={{
+                    transform: `rotateX(${rotate.x}deg) rotateY(${rotate.y}deg) scale(${isHovering ? 1.06 : 1})`,
+                    transition: isHovering ? 'transform 0.08s ease-out' : 'transform 0.6s cubic-bezier(0.23, 1, 0.32, 1)',
+                    transformStyle: 'preserve-3d',
+                  }}
+                >
+                  <img
+                    src={homeData.profilePicture}
+                    alt={homeData.displayName}
+                    className="relative w-64 h-64 sm:w-80 sm:h-80 lg:w-96 lg:h-96 rounded-full object-cover border-8 border-white dark:border-gray-800 shadow-2xl"
+                    loading="eager"
+                    style={{
+                      boxShadow: isHovering
+                        ? `${-rotate.y * 0.8}px ${rotate.x * 0.8}px 40px rgba(0,0,0,0.3), ${-rotate.y * 0.3}px ${rotate.x * 0.3}px 80px rgba(59,130,246,0.15)`
+                        : '0 25px 50px -12px rgba(0,0,0,0.25)',
+                      transition: isHovering ? 'box-shadow 0.1s ease-out' : 'box-shadow 0.6s ease-out',
+                    }}
+                  />
+
+                  {/* Specular highlight overlay — simulates a light source following the cursor */}
+                  <div
+                    className="absolute inset-0 rounded-full pointer-events-none"
+                    style={{
+                      background: `radial-gradient(circle at ${glow.x}% ${glow.y}%, rgba(255,255,255,0.25) 0%, transparent 60%)`,
+                      opacity: isHovering ? 1 : 0,
+                      transition: 'opacity 0.3s ease-out',
+                    }}
+                  />
+                </div>
+
+                {/* Floating particles / dots at different parallax depths */}
+                {[...Array(6)].map((_, i) => {
+                  const angle = (i / 6) * Math.PI * 2;
+                  const radius = 55 + (i % 3) * 8;
+                  const depth = 0.2 + (i % 3) * 0.15;
+                  return (
+                    <div
+                      key={i}
+                      className="absolute w-2 h-2 rounded-full pointer-events-none"
+                      style={{
+                        background: i % 2 === 0
+                          ? 'rgba(59,130,246,0.7)'
+                          : 'rgba(168,85,247,0.7)',
+                        top: `${50 + Math.sin(angle) * radius}%`,
+                        left: `${50 + Math.cos(angle) * radius}%`,
+                        transform: `translate(-50%, -50%) translateX(${rotate.y * depth}px) translateY(${-rotate.x * depth}px)`,
+                        transition: isHovering ? 'transform 0.12s ease-out, opacity 0.3s ease-out' : 'transform 0.8s ease-out, opacity 0.5s ease-out',
+                        opacity: isHovering ? 0.9 : 0.2,
+                        boxShadow: isHovering
+                          ? `0 0 6px ${i % 2 === 0 ? 'rgba(59,130,246,0.8)' : 'rgba(168,85,247,0.8)'}`
+                          : 'none',
+                      }}
+                    />
+                  );
+                })}
+              </div>
             ) : (
               <div className="relative w-64 h-64 sm:w-80 sm:h-80 lg:w-96 lg:h-96 rounded-full overflow-hidden shadow-2xl bg-white/60 dark:bg-gray-900/60 backdrop-blur-md border-8 border-white dark:border-gray-800">
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 to-purple-600/20 dark:from-blue-600/20 dark:to-purple-800/20" />
